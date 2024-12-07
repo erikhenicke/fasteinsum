@@ -1,3 +1,3 @@
 #pragma once
 
-float hello_bmm(int x, float y);
+double *add_arrays(double *a, double *b, double *c, int size);

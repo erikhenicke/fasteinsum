@@ -1,8 +1,8 @@
 #include "hello_bmm.h"
-#include <iostream>
 
-float hello_bmm(int x, float y) {
-    std::cout << "Hello, BMM!" << std::endl;
-    std::cout << "In hello_bmm the returned value is: "<< x * y << std::endl;
-    return x * y;
+double *add_arrays(double *a, double *b, double *c, int size) {
+    for (int i = 0; i < size; i++) {
+        c[i] = a[i] + b[i];
+    }
+    return c;
 }
