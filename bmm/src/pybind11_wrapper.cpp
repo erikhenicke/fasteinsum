@@ -1,32 +1,32 @@
 #include <pybind11/pybind11.h>
-#include <hello_bmm.h>
+#include <bmm.h>
 #include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
-py::array_t<double> wrapper(py::array_t<double> input1, py::array_t<double> input2) {
-    py::buffer_info buf1 = input1.request(), buf2 = input2.request();
+py::array_t<double> bmm_wrapper(py::array_t<double> A, py::array_t<double> B) {
+    py::buffer_info A_buf = A.request(), B_buf = B.request();
 
-    if (buf1.ndim != 1 || buf2.ndim != 1)
-        throw std::runtime_error("Number of dimensions must be one");
+    if (A_buf.ndim != 3 || B_buf.ndim != 3)
+        throw std::runtime_error("Number of dimensions must be three");
 
-    if (buf1.size != buf2.size)
-        throw std::runtime_error("Input shapes must match");
+    if (A_buf.shape[2] != B_buf.shape[1] || A_buf.shape[0] != B_buf.shape[0])
+        throw std::runtime_error("Matrix dimensions or batch dimensions do not match for multiplication");
 
-    /* No pointer is passed, so NumPy will allocate the buffer */
-    auto result = py::array_t<double>(buf1.size);
+    py::array_t<double> result = py::array_t<double>({A_buf.shape[0], A_buf.shape[1], B_buf.shape[2]});
+    py::buffer_info res_buf = result.request();
 
-    py::buffer_info buf3 = result.request();
+    double *ptr_A = static_cast<double *>(A_buf.ptr);
+    double *ptr_B = static_cast<double *>(B_buf.ptr);
+    double *ptr_res = static_cast<double *>(res_buf.ptr);
 
-    double *ptr1 = static_cast<double *>(buf1.ptr);
-    double *ptr2 = static_cast<double *>(buf2.ptr);
-    double *ptr3 = static_cast<double *>(buf3.ptr);
+    int bA = A_buf.shape[0], rA = A_buf.shape[1], cA = A_buf.shape[2], cB = B_buf.shape[2];
 
-    ptr3 = add_arrays(ptr1, ptr2, ptr3, buf1.size);
+    ptr_res = batch_matrix_multiply(ptr_A, ptr_B, ptr_res, bA, rA, cB, cA);
 
     return result;
 }
 
-PYBIND11_MODULE(pybind11_example, m) {
-    m.def("add_arrays", &wrapper, "Add two NumPy arrays");
+PYBIND11_MODULE(py_bmm, m) {
+    m.def("bmm", &bmm_wrapper, "multiply two batch matrices");
 }

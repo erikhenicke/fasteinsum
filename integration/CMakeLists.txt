@@ -5,8 +5,8 @@ find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 set(PYTHONPATH "${CMAKE_BINARY_DIR}/bmm")
 
 # Add python test as target
-add_custom_target(test_pybind11
-        COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PYTHONPATH} ${Python3_EXECUTABLE} pybind11_test.py
+add_custom_target(bmm_test
+        COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PYTHONPATH} ${Python3_EXECUTABLE} bmm_test.py
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS pybind11_example
+        DEPENDS py_bmm
 )
