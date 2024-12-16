@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(lib-bmm)
 
 # Add the example library
-add_library(bmm SHARED src/bmm.cpp include/bmm.h)
+add_library(bmm SHARED src/bmm.cpp include/bmm.h src/bmm_blocking.cpp include/bmm_blocking.h)
 target_include_directories(bmm PUBLIC include)
 
 #set(CMAKE_PREFIX_PATH "/home/erik/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11/")
