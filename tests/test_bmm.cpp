@@ -71,6 +71,11 @@ void bmm_blocked_simd_wrapper(const double *a, const double *b, double *c,
     bmm_blocked_simd(a, b, c, batch_dim, a_rows, b_cols, a_cols, block_size);
 }
 
+void bmm_blocked_simd_collapse_wrapper(const double *a, const double *b, double *c,
+                              int batch_dim, int a_rows, int b_cols, int a_cols, int block_size) {
+    bmm_blocked_simd_collapse(a, b, c, batch_dim, a_rows, b_cols, a_cols, block_size);
+}
+
 void bmm_blocked_simd_restricted_pointers_wrapper(const double *a, const double *b, double *c,
                                                   int batch_dim, int a_rows, int b_cols, int a_cols, int block_size) {
     bmm_blocked_simd_restricted_pointers(a, b, c, batch_dim, a_rows, b_cols, a_cols, block_size);
@@ -167,6 +172,13 @@ TEST_CASE("Comparison of bmm_blocking functions", "[bmm_blocking]") {
         fill(c.begin(), c.end(), 0.0);
         double time_taken = time_blocked_function(bmm_blocked_simd_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
         cout << "Time taken by bmm_blocked_simd: " << time_taken << " seconds" << endl;
+        REQUIRE(compare_matrices(c, c_ref));
+    }
+
+    SECTION("Timing and correctness of bmm_blocked_simd_collapse") {
+        fill(c.begin(), c.end(), 0.0);
+        double time_taken = time_blocked_function(bmm_blocked_simd_collapse_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+        cout << "Time taken by bmm_blocked_simd_collapse: " << time_taken << " seconds" << endl;
         REQUIRE(compare_matrices(c, c_ref));
     }
 
