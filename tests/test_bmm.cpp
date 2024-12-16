@@ -30,14 +30,24 @@ double time_function(void (*func)(const double*, const double*, double*, int, in
     return elapsed.count();
 }
 
+double time_blocked_function(void (*func)(const double*, const double*, double*, int, int, int, int, int),
+                             const double *a, const double *b, double *c,
+                             int batch_dim, int a_rows, int b_cols, int a_cols, int block_size) {
+    auto start = high_resolution_clock::now();
+    func(a, b, c, batch_dim, a_rows, b_cols, a_cols, block_size);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    return elapsed.count();
+}
+
 void batch_matrix_multiply_wrapper(const double *a, const double *b, double *c,
                                    int batch_dim, int a_rows, int b_cols, int a_cols) {
     batch_matrix_multiply(a, b, c, batch_dim, a_rows, b_cols, a_cols);
 }
 
 void blocked_matrix_multiply_wrapper(const double *a, const double *b, double *c,
-                                     int batch_dim, int a_rows, int b_cols, int a_cols) {
-    blocked_matrix_multiply(a, b, c, batch_dim, a_rows, b_cols, a_cols);
+                                     int batch_dim, int a_rows, int b_cols, int a_cols, int block_size) {
+    blocked_matrix_multiply(a, b, c, batch_dim, a_rows, b_cols, a_cols, block_size);
 }
 
 TEST_CASE("Batch Matrix Multiplication Timing", "[bmm]") {
@@ -58,8 +68,12 @@ TEST_CASE("Batch Matrix Multiplication Timing", "[bmm]") {
         cout << "Time taken by batch_matrix_multiply: " << time_taken << " seconds" << endl;
     }
 
-    SECTION("Timing blocked_matrix_multiply") {
-        double time_taken = time_function(blocked_matrix_multiply_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
-        cout << "Time taken by blocked_matrix_multiply: " << time_taken << " seconds" << endl;
+    SECTION("Timing blocked_matrix_multiply with different block sizes") {
+        vector<int> block_sizes = {16, 32, 64, 128};
+        for (int block_size : block_sizes) {
+            fill(c.begin(), c.end(), 0.0); // Reset the result matrix
+            double time_taken = time_blocked_function(blocked_matrix_multiply_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+            cout << "Time taken by blocked_matrix_multiply with block size " << block_size << ": " << time_taken << " seconds" << endl;
+        }
     }
 }
