@@ -1,0 +1,24 @@
+matrix size: 1024, batch dim: 10, no flags
+
+Time taken by bmm_omp_simple: 188.679 seconds
+Time taken by bmm_simd: 272.667 seconds
+Time taken by bmm_collaps: 256.752 seconds
+Time taken by batch_matrix_multiply: 239.056 seconds
+Time taken by blocked_matrix_multiply with block size 16: 71.8501 seconds
+Time taken by blocked_matrix_multiply with block size 32: 69.6423 seconds
+Time taken by blocked_matrix_multiply with block size 64: 71.3869 seconds
+Time taken by blocked_matrix_multiply with block size 128: 70.8908 seconds
+
+matrix size 512, batch dim: 10, flags: -Ofast -std=c++11 -march=native -fopenmp
+Time taken by bmm_omp_simple: 4.87694 seconds
+Time taken by bmm_simd: 2.76046 seconds
+Time taken by bmm_collaps: 1.43572 seconds
+Time taken by batch_matrix_multiply: 8.0306 seconds
+Time taken by bmm_blocked with block size 16: 0.516651 seconds
+Time taken by bmm_blocked with block size 32: 0.417096 seconds
+Time taken by bmm_blocked with block size 64: 0.377038 seconds
+Time taken by bmm_blocked with block size 128: 0.49372 seconds
+Time taken by bmm_blocked: 0.420783 seconds
+Time taken by bmm_blocked_simd: 0.1749 seconds
+Time taken by bmm_blocked_simd_restricted_pointers: 0.188014 seconds
+
