@@ -9,6 +9,9 @@ set(HEADER_FILES include/mm.h include/mm_performance.h)
 add_library(mm SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(mm PUBLIC include)
 
+add_executable(benchmark_runner src/benchmark_runner.cpp)
+target_link_libraries(benchmark_runner PUBLIC mm)
+
 # for now: No python integration
 ##set(CMAKE_PREFIX_PATH "/home/erik/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11/")
 #set(CMAKE_PREFIX_PATH "/home/sonja/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11")
@@ -22,7 +25,7 @@ target_include_directories(mm PUBLIC include)
 # add OMP
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(bmm PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(mm PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 

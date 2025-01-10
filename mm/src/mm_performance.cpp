@@ -6,6 +6,7 @@
 #include <chrono>
 #include <fstream>
 #include <random>
+#include <iostream>
 #include <vector>
 
 using namespace std;
