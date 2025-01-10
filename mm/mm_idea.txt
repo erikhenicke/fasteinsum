@@ -1,0 +1,7 @@
+Idea and Aim:
+
+Implement pure Matrix Multiplication function
+Test and compare their performance.
+Maybe compare to numpy/BLAS implementation
+Then use the best MM function in BMM, and parallelize over Batch dimension
+- or maybe parallelize MM itself, only adding batch dimension?
