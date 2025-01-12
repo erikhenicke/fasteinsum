@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "mm.h"
+#include <random>
 
 using namespace std;
 
@@ -38,10 +39,21 @@ int main() {
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_transposed, "mm_transposed");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_auto_vectorized, "mm_auto_vectorized");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_omp_vectorized, "mm_omp_vectorized");
-    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_32, "mm_vectorized_32");
-    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_64, "mm_vectorized_64");
-    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_pipe_2, "mm_vectorized_pipe_2");
-    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_pipe_8, "mm_vectorized_pipe_8");
+//    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_32, "mm_vectorized_32");
+//    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_64, "mm_vectorized_64");
+//    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_pipe_2, "mm_vectorized_pipe_2");
+//    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_pipe_8, "mm_vectorized_pipe_8");
+
+    // Initialize two matrizes a and b of size 64x64
+    vector<double> a64(64 * 64), b64(64 * 64);
+    for (int i = 0; i < 64 * 64; ++i) {
+        a64[i] = static_cast<double>(rand()) / RAND_MAX;
+        b64[i] = static_cast<double>(rand()) / RAND_MAX;
+    }
+
+    cout << "Matrix A:" << endl;
+    // Multiply and print the result using the mm_kernel_6x16 function
+    multiply_and_print(a64.data(), b64.data(), c.data(), 64, 64, 64, mm_kernel_6x16, "mm_kernel_6x16");
 
     return 0;
 }

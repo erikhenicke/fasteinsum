@@ -354,3 +354,115 @@ void mm_vectorized_pipe_8(const double *a, const double *b, double *c, const int
 //    free(aligned_a);
 //    free(aligned_b);
 //}
+
+
+
+// Designing an inner kernel (micro kernel) for matrix multiplication
+// kernel updates 4x4 block of c[a_idx:a_idx+4][b_idx:b_idx+4] using a[a_idx:a_idx+4][l:r] and b[l:r][b_idx:b_idx+4]
+
+
+void kernel(double *a, __m256d *b, __m256d *c, int x, int y, int l, int r, int n) {
+    __m256d t[6][2] = {}; // will be zero-filled and stored in ymm registers
+
+    for (int k = l; k < r; k++) {
+        __m256d b0 = _mm256_load_pd(reinterpret_cast<double*>(&b[(k * n + y) / 4]));
+        __m256d b1 = _mm256_load_pd(reinterpret_cast<double*>(&b[(k * n + y + 4) / 4]));
+
+        __m256d a0 = _mm256_broadcast_sd(&a[x * n + k]);
+        t[0][0] = _mm256_fmadd_pd(a0, b0, t[0][0]);
+        t[0][1] = _mm256_fmadd_pd(a0, b1, t[0][1]);
+
+        __m256d a1 = _mm256_broadcast_sd(&a[(x + 1) * n + k]);
+        t[1][0] = _mm256_fmadd_pd(a1, b0, t[1][0]);
+        t[1][1] = _mm256_fmadd_pd(a1, b1, t[1][1]);
+
+        __m256d a2 = _mm256_broadcast_sd(&a[(x + 2) * n + k]);
+        t[2][0] = _mm256_fmadd_pd(a2, b0, t[2][0]);
+        t[2][1] = _mm256_fmadd_pd(a2, b1, t[2][1]);
+
+        __m256d a3 = _mm256_broadcast_sd(&a[(x + 3) * n + k]);
+        t[3][0] = _mm256_fmadd_pd(a3, b0, t[3][0]);
+        t[3][1] = _mm256_fmadd_pd(a3, b1, t[3][1]);
+
+        __m256d a4 = _mm256_broadcast_sd(&a[(x + 4) * n + k]);
+        t[4][0] = _mm256_fmadd_pd(a4, b0, t[4][0]);
+        t[4][1] = _mm256_fmadd_pd(a4, b1, t[4][1]);
+
+        __m256d a5 = _mm256_broadcast_sd(&a[(x + 5) * n + k]);
+        t[5][0] = _mm256_fmadd_pd(a5, b0, t[5][0]);
+        t[5][1] = _mm256_fmadd_pd(a5, b1, t[5][1]);
+    }
+
+    // write the results back to C
+    for (int i = 0; i < 6; i++) {
+        _mm256_store_pd(reinterpret_cast<double*>(&c[((x + i) * n + y) / 4]), t[i][0]);
+        _mm256_store_pd(reinterpret_cast<double*>(&c[((x + i) * n + y + 4) / 4]), t[i][1]);
+    }
+}
+
+void mm_kernel_6x16(const double *a, const double *b, double *c, int a_rows, int b_cols, int a_cols) {
+        // Allocate aligned memory for matrices A and B, padd to multiples of 6 and 16
+        double *aligned_a, *aligned_b;
+        posix_memalign(reinterpret_cast<void**>(&aligned_a), 64, a_rows * a_cols * sizeof(double));
+        posix_memalign(reinterpret_cast<void**>(&aligned_b), 64, a_cols * b_cols * sizeof(double));
+
+        // Copy data from original matrix A to aligned memory
+        std::memcpy(aligned_a, a, a_rows * a_cols * sizeof(double));
+        std::memcpy(aligned_b, b, a_cols * b_cols * sizeof(double));
+
+        // Initialize result matrix c to zero
+        for (int i = 0; i < a_rows * b_cols; ++i)
+            c[i] = 0.0;
+
+//void mm_kernel_6x16(const double *a, const double *b, double *c, int a_rows, int b_cols, int a_cols) {
+//    // pad a and b to multiples of 6 and 16 respectively
+//    std::cout << "1" << endl;
+//    int a_padded_rows = (a_rows + 5) / 6 * 6;
+//    int b_padded_cols = (b_cols + 15) / 16 * 16;
+//    std::cout << "2" << endl;
+//
+//    // allocate memory for padded a and b and c
+//    double *a_padded = new double[a_padded_rows * a_cols];
+//    double *b_padded = new double[b_cols * b_padded_cols];
+//    double *c_padded = new double[a_padded_rows * b_padded_cols];
+//
+//    std::cout << "3" << endl;
+//    // copy a and b to padded arrays
+//    for (int i = 0; i < a_rows; i++) {
+//        std::memcpy(&a_padded[i * a_cols], &a[i * a_cols], a_cols * sizeof(double));
+//    }
+//    for (int i = 0; i < b_cols; i++) {
+//        std::memcpy(&b_padded[i * b_padded_cols], &b[i * b_cols], b_cols * sizeof(double));
+//    }
+//
+//    std::cout << "4" << endl;
+//    // initialize c_padded to zero
+//    for (int i = 0; i < a_padded_rows * b_padded_cols; i++) {
+//        c_padded[i] = 0.0;
+//    }
+//
+//    std::cout << "5" << endl;
+//    // perform matrix multiplication using 6x16 kernel
+//    for (int i = 0; i < a_padded_rows; i += 6) {
+//        for (int j = 0; j < b_padded_cols; j += 16) {
+//            for (int k = 0; k < a_cols; k += 16) {
+//                kernel(&a_padded[i * a_cols], reinterpret_cast<__m256d*>(&b_padded[k * b_padded_cols]), reinterpret_cast<__m256d*>(&c_padded[i * b_padded_cols]), i, j, k, std::min(k + 16, a_cols), a_cols);
+//            }
+//        }
+//    }
+//
+//    std::cout << "6" << endl;
+//    // copy c_padded to c
+//    for (int i = 0; i < a_rows; i++) {
+//        std::memcpy(&c[i * b_cols], &c_padded[i * b_padded_cols], b_cols * sizeof(double));
+//    }
+//
+//    std::cout << "7" << endl;
+//    // free memory
+//    delete[] a_padded;
+//    delete[] b_padded;
+//    delete[] c_padded;
+//}
+
+
+
