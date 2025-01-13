@@ -15,6 +15,8 @@ target_link_libraries(benchmark_runner PUBLIC mm)
 add_executable(test_kernel src/temp_test_kernel.cpp)
 target_link_libraries(test_kernel PUBLIC mm)
 
+add_executable(kernel_optimizer src/kernel_optimizer.cpp)
+
 # for now: No python integration
 ##set(CMAKE_PREFIX_PATH "/home/erik/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11/")
 #set(CMAKE_PREFIX_PATH "/home/sonja/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11")

@@ -82,4 +82,14 @@ TEST_CASE("Matrix Multiplication Functions", "[mm]") {
             test_function(mm_vectorized_pipe_8, size);
         }
     }
+    SECTION("mm_kernel") {
+        for (int size : sizes) {
+            test_function(mm_kernel, size);
+        }
+    }
+    SECTION("mm_blocked") {
+        for (int size : sizes) {
+            test_function(mm_blocked, size);
+        }
+    }
 }

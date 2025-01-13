@@ -315,6 +315,46 @@ void mm_vectorized_pipe_8(const double *a, const double *b, double *c, const int
     free(aligned_b);
 }
 
+// Tried not transposing. Takes way longer, BAD IDEA
+
+//void mm_vectorized_pipe_nT(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+//    // Allocate aligned memory for matrices A and B
+//    double *aligned_a, *aligned_b;
+//    posix_memalign(reinterpret_cast<void**>(&aligned_a), 64, a_rows * a_cols * sizeof(double));
+//    posix_memalign(reinterpret_cast<void**>(&aligned_b), 64, a_cols * b_cols * sizeof(double));
+//
+//    // Copy data from original matrix A to aligned memory
+//    std::memcpy(aligned_a, a, a_rows * a_cols * sizeof(double));
+//    std::memcpy(aligned_b, b, a_cols * b_cols * sizeof(double));
+//
+//    // Initialize result matrix c to zero
+//    for (int i = 0; i < a_rows * b_cols; ++i)
+//        c[i] = 0.0;
+//
+//    // Perform matrix multiplication using AVX intrinsics with pipelined FMA calls
+//    for (int i = 0; i < a_rows; ++i) {
+//        for (int j = 0; j < b_cols; ++j) {
+//            __m256d c_vec1 = _mm256_setzero_pd();
+//            __m256d c_vec2 = _mm256_setzero_pd();
+//            for (int k = 0; k < a_cols; k += 8) {
+//                __m256d a_vec1 = _mm256_load_pd(&aligned_a[i * a_cols + k]);
+//                __m256d b_vec1 = _mm256_load_pd(&aligned_b[k * b_cols + j]);
+//                c_vec1 = _mm256_fmadd_pd(a_vec1, b_vec1, c_vec1);
+//
+//                __m256d a_vec2 = _mm256_load_pd(&aligned_a[i * a_cols + k + 4]);
+//                __m256d b_vec2 = _mm256_load_pd(&aligned_b[(k + 4) * b_cols + j]);
+//                c_vec2 = _mm256_fmadd_pd(a_vec2, b_vec2, c_vec2);
+//            }
+//            c[i * b_cols + j] += c_vec1[0] + c_vec1[1] + c_vec1[2] + c_vec1[3] + c_vec2[0] + c_vec2[1] + c_vec2[2] + c_vec2[3];
+//        }
+//    }
+//
+//    // Clean up
+//    free(aligned_a);
+//    free(aligned_b);
+//}
+
+
 void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
                int a_idx, int b_idx, int height, int width, int l, int r) {
     // Assumption: A and B already aligned and B transposed
@@ -416,41 +456,58 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
     free(aligned_b);
 }
 
-// Tried not transposing. Takes way longer, BAD IDEA
+// Block matrix multiplication
+// Want B in L1 Cache because it is accessed in inner loop
+// A in L2 Cache, B in L3 Cache again
+void mm_blocked(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+    // Allocate aligned memory for matrices A and B
+    double *aligned_a, *aligned_b;
+    posix_memalign(reinterpret_cast<void**>(&aligned_a), 64, a_rows * a_cols * sizeof(double));
+    posix_memalign(reinterpret_cast<void**>(&aligned_b), 64, a_cols * b_cols * sizeof(double));
 
-//void mm_vectorized_pipe_nT(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
-//    // Allocate aligned memory for matrices A and B
-//    double *aligned_a, *aligned_b;
-//    posix_memalign(reinterpret_cast<void**>(&aligned_a), 64, a_rows * a_cols * sizeof(double));
-//    posix_memalign(reinterpret_cast<void**>(&aligned_b), 64, a_cols * b_cols * sizeof(double));
-//
-//    // Copy data from original matrix A to aligned memory
-//    std::memcpy(aligned_a, a, a_rows * a_cols * sizeof(double));
-//    std::memcpy(aligned_b, b, a_cols * b_cols * sizeof(double));
-//
-//    // Initialize result matrix c to zero
-//    for (int i = 0; i < a_rows * b_cols; ++i)
-//        c[i] = 0.0;
-//
-//    // Perform matrix multiplication using AVX intrinsics with pipelined FMA calls
-//    for (int i = 0; i < a_rows; ++i) {
-//        for (int j = 0; j < b_cols; ++j) {
-//            __m256d c_vec1 = _mm256_setzero_pd();
-//            __m256d c_vec2 = _mm256_setzero_pd();
-//            for (int k = 0; k < a_cols; k += 8) {
-//                __m256d a_vec1 = _mm256_load_pd(&aligned_a[i * a_cols + k]);
-//                __m256d b_vec1 = _mm256_load_pd(&aligned_b[k * b_cols + j]);
-//                c_vec1 = _mm256_fmadd_pd(a_vec1, b_vec1, c_vec1);
-//
-//                __m256d a_vec2 = _mm256_load_pd(&aligned_a[i * a_cols + k + 4]);
-//                __m256d b_vec2 = _mm256_load_pd(&aligned_b[(k + 4) * b_cols + j]);
-//                c_vec2 = _mm256_fmadd_pd(a_vec2, b_vec2, c_vec2);
-//            }
-//            c[i * b_cols + j] += c_vec1[0] + c_vec1[1] + c_vec1[2] + c_vec1[3] + c_vec2[0] + c_vec2[1] + c_vec2[2] + c_vec2[3];
-//        }
-//    }
-//
-//    // Clean up
-//    free(aligned_a);
-//    free(aligned_b);
-//}
+    // Copy data from original matrix A to aligned memory
+    std::memcpy(aligned_a, a, a_rows * a_cols * sizeof(double));
+
+    // Transpose and copy data from original matrix B to aligned memory
+    for (int i = 0; i < a_cols; ++i) {
+        for (int j = 0; j < b_cols; ++j) {
+            aligned_b[i * b_cols + j] = b[j * a_cols + i];
+        }
+    }
+
+    // Initialize result matrix c to zero
+    for (int i = 0; i < a_rows * b_cols; ++i)
+        c[i] = 0.0;
+
+    // kernel size
+    int height = 4;
+    int width = 4;
+
+    // Block matrix multiplication
+    const int b3 = 32;
+    const int b2 = 64;
+    const int b1 = 128; // TODO: try different block sizes
+
+    for (int i3 = 0; i3 < b_cols; i3 += b3) {
+        for (int i2 = 0; i2 < a_cols; i2 += b2) {
+            for (int i1 = 0; i1 < a_rows; i1 += b1) {
+               // multiply the block
+                for (int i = i2; i < std::min(i2+b2, a_cols); i += height) {
+                     for (int j = i3; j < std::min(i3 + b3, b_cols); j += width) {
+                          kernel(aligned_a, aligned_b, c, a_rows, b_cols, a_cols, i, j, height, width, i1, std::min(i1+b1, a_rows));
+                     }
+                }
+            }
+        }
+    }
+
+    // TODO: get rid of std::min!!!
+
+    // Clean up
+    free(aligned_a);
+    free(aligned_b);
+}
+
+
+//void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
+//               int a_idx, int b_idx, int height, int width, int l, int r) {

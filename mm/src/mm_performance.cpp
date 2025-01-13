@@ -21,13 +21,15 @@ void run_mm_benchmarks(const std::string &output_file, const std::vector<int> &m
     ofs << "Matrix Size,Function,Average Time (ms)" << std::endl;
 
     std::vector<void (*)(const double *, const double *, double *, const int, const int, const int)> functions = {
-        mm_naive, mm_transposed, mm_auto_vectorized, mm_omp_vectorized, mm_vectorized_32, mm_vectorized_64,
-        mm_vectorized_pipe_2, mm_vectorized_pipe_8, mm_kernel
+//        mm_naive, mm_transposed,
+        mm_auto_vectorized, mm_omp_vectorized, mm_vectorized_32, mm_vectorized_64,
+        mm_vectorized_pipe_2, mm_vectorized_pipe_8, mm_kernel, mm_blocked
     };
 
     std::vector<std::string> function_names = {
-        "mm_naive", "mm_transposed", "mm_auto_vectorized", "mm_omp_vectorized", "mm_vectorized_32", "mm_vectorized_64",
-        "mm_vectorized_pipe_2", "mm_vectorized_pipe_8", "mm_kernel"
+//        "mm_naive", "mm_transposed",
+        "mm_auto_vectorized", "mm_omp_vectorized", "mm_vectorized_32", "mm_vectorized_64",
+        "mm_vectorized_pipe_2", "mm_vectorized_pipe_8", "mm_kernel", "mm_blocked"
     };
 
     std::random_device rd;
@@ -42,6 +44,8 @@ void run_mm_benchmarks(const std::string &output_file, const std::vector<int> &m
 
         for (size_t i = 0; i < functions.size(); ++i) {
             double total_time = 0.0;
+
+            cout << "Running " << function_names[i] << " for matrix size " << size << endl;
 
             for (int repeat = 0; repeat < num_repeats; ++repeat) {
                 std::fill(c.begin(), c.end(), 0.0);

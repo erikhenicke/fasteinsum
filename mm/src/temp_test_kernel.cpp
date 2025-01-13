@@ -21,6 +21,8 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         std::cout << c[i] << " ";
     }
+    std::cout << std::endl;
+
 
     std::fill(c.begin(), c.end(), 0.0);
     mm_vectorized_pipe_8(a.data(), b.data(), c.data(), size, size, size);
@@ -29,6 +31,8 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         std::cout << c[i] << " ";
     }
+    std::cout << std::endl;
+
 
     std::fill(c.begin(), c.end(), 0.0);
     mm_kernel(a.data(), b.data(), c.data(), size, size, size);
@@ -37,7 +41,17 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         std::cout << c[i] << " ";
     }
-    sdt::cout << std::endl;
+    std::cout << std::endl;
+
+
+    std::fill(c.begin(), c.end(), 0.0);
+    mm_blocked(a.data(), b.data(), c.data(), size, size, size);
+    std::cout << "mm_blocked completed" << std::endl;
+    // print first 10 elements of c
+    for (int i = 0; i < 10; ++i) {
+        std::cout << c[i] << " ";
+    }
+    std::cout << std::endl;
 
     return 0;
 }

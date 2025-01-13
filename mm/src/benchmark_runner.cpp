@@ -7,7 +7,7 @@
 
 int main() {
     std::string output_file = "benchmark_results.csv";
-    std::vector<int> matrix_sizes = {128, 256, 512, 1024};
+    std::vector<int> matrix_sizes = {2048};
     int num_repeats = 1;
 
     run_mm_benchmarks(output_file, matrix_sizes, num_repeats);
