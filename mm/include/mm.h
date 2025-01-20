@@ -17,6 +17,7 @@ void mm_vectorized_pipe_8(const double *a, const double *b, double *c, const int
 
 void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
 void mm_blocked(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
+void mm_blocked_packed(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
 
 
 #endif //MM_H

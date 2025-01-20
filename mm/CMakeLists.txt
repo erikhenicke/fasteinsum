@@ -3,7 +3,7 @@ project(lib-mm)
 
 # set SOURCE variable to the list of source files
 set(SOURCE_FILES src/mm.cpp src/mm_performance.cpp)
-set(HEADER_FILES include/mm.h include/mm_performance.h)
+set(HEADER_FILES include/mm.h include/mm_performance.h include/aligned_allocator.h)
 
 # Add the library
 add_library(mm SHARED ${SOURCE_FILES} ${HEADER_FILES})

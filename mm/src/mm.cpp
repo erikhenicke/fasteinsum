@@ -3,11 +3,18 @@
 //
 
 #include "mm.h"
+#include "aligned_allocator.h"
 #include <omp.h>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <immintrin.h>
+
+// aligned_vector is a 64 byte aligned std::vector
+template <class T>
+using aligned_vector = std::vector<T, alligned_allocator<T, 64>>;
+//using aligned_vector = std::vector<T>;
+
 
 // Naive implementation using three nested loops
 void mm_naive(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
@@ -511,3 +518,73 @@ void mm_blocked(const double *a, const double *b, double *c, const int a_rows, c
 
 //void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
 //               int a_idx, int b_idx, int height, int width, int l, int r) {
+
+
+// Preprocessing/packing function
+
+//void pack(const double *a, const double *b, double **a_aligned, double **b_aligned_transposed, const int a_rows, const int a_cols, const int b_cols) {
+//    // Allocate aligned memory for matrices A and B
+//    aligned_vector<double> a_aligned(a_rows * a_cols);
+//    aligned_vector<double> b_aligned_transposed(a_cols * b_cols);
+//    // a and b are 64 bit aligned
+//
+//    // Copy data from original matrix A to aligned memory
+//    *a_aligned =
+//
+//    // Transpose and copy data from original matrix B to aligned memory
+//    for (int i = 0; i < a_cols; ++i) {
+//        for (int j = 0; j < b_cols; ++j) {
+//            (*b_aligned_transposed)[i * b_cols + j] = b[j * a_cols + i];
+//        }
+//    }
+//}
+
+void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned_transposed, const int a_rows, const int a_cols, const int b_cols) {
+    // Allocate aligned memory for matrices A and B
+    a_aligned.resize(a_rows * a_cols);
+    b_aligned_transposed.resize(a_cols * b_cols);
+
+    // Copy data from original matrix A to aligned memory
+    std::memcpy(a_aligned.data(), a, a_rows * a_cols * sizeof(double));
+
+    // Transpose and copy data from original matrix B to aligned memory
+    for (int i = 0; i < a_cols; ++i) {
+        for (int j = 0; j < b_cols; ++j) {
+            b_aligned_transposed[i * b_cols + j] = b[j * a_cols + i];
+        }
+    }
+}
+
+// Blocked matrix multiplication with packed data
+void mm_blocked_packed(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+    // Pack data
+    aligned_vector<double> a_aligned;
+    aligned_vector<double> b_aligned_transposed;
+    pack(a, b, a_aligned, b_aligned_transposed, a_rows, a_cols, b_cols);
+
+    // Initialize result matrix c to zero
+    for (int i = 0; i < a_rows * b_cols; ++i)
+        c[i] = 0.0;
+
+    // kernel size
+    int height = 4;
+    int width = 4;
+
+    // Block matrix multiplication
+    const int b3 = 32;
+    const int b2 = 64;
+    const int b1 = 128; // TODO: try different block sizes
+
+    for (int i3 = 0; i3 < b_cols; i3 += b3) {
+        for (int i2 = 0; i2 < a_cols; i2 += b2) {
+            for (int i1 = 0; i1 < a_rows; i1 += b1) {
+                // multiply the block
+                for (int i = i2; i < std::min(i2+b2, a_cols); i += height) {
+                    for (int j = i3; j < std::min(i3 + b3, b_cols); j += width) {
+                        kernel(a_aligned.data(), b_aligned_transposed.data(), c, a_rows, b_cols, a_cols, i, j, height, width, i1, std::min(i1+b1, a_rows));
+                    }// TODO: get rid of std::min!!!
+                }
+            }
+        }
+    }
+}

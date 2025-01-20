@@ -92,4 +92,9 @@ TEST_CASE("Matrix Multiplication Functions", "[mm]") {
             test_function(mm_blocked, size);
         }
     }
+    SECTION("mm_blocked_packed") {
+        for (int size : sizes) {
+            test_function(mm_blocked_packed, size);
+        }
+    }
 }
