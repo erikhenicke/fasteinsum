@@ -22,14 +22,16 @@ void run_mm_benchmarks(const std::string &output_file, const std::vector<int> &m
 
     std::vector<void (*)(const double *, const double *, double *, const int, const int, const int)> functions = {
 //        mm_naive, mm_transposed,
-        mm_auto_vectorized, mm_omp_vectorized, mm_vectorized_32, mm_vectorized_64,
-        mm_vectorized_pipe_2, mm_vectorized_pipe_8, mm_kernel, mm_blocked, mm_blocked_packed
+//        mm_auto_vectorized, mm_omp_vectorized, mm_vectorized_64,
+//        mm_vectorized_pipe_2, mm_vectorized_pipe_8, mm_kernel,
+        mm_blocked, mm_blocked_packed_stdmin
     };
 
     std::vector<std::string> function_names = {
 //        "mm_naive", "mm_transposed",
-        "mm_auto_vectorized", "mm_omp_vectorized", "mm_vectorized_32", "mm_vectorized_64",
-        "mm_vectorized_pipe_2", "mm_vectorized_pipe_8", "mm_kernel", "mm_blocked", "mm_blocked_packed"
+//        "mm_auto_vectorized", "mm_omp_vectorized", "mm_vectorized_64",
+//        "mm_vectorized_pipe_2", "mm_vectorized_pipe_8", "mm_kernel",
+        "mm_blocked", "mm_blocked_packed_stdmin"
     };
 
     std::random_device rd;

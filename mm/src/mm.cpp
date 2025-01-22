@@ -4,6 +4,7 @@
 
 #include "mm.h"
 #include "aligned_allocator.h"
+#include <vector>  // std::vector for using aligned_vector
 #include <omp.h>
 #include <cstdlib>
 #include <cstring>
@@ -13,7 +14,6 @@
 // aligned_vector is a 64 byte aligned std::vector
 template <class T>
 using aligned_vector = std::vector<T, alligned_allocator<T, 64>>;
-//using aligned_vector = std::vector<T>;
 
 
 // Naive implementation using three nested loops
@@ -101,53 +101,6 @@ void mm_omp_vectorized(const double * __restrict__ a, const double * __restrict_
 }
 
 // Vectorized implementation using AVX intrinsics
-void mm_vectorized_32(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
-    // Allocate aligned memory for matrices A and B
-    double *aligned_a, *aligned_b;
-    posix_memalign(reinterpret_cast<void**>(&aligned_a), 32, a_rows * a_cols * sizeof(double)); //64?? 32- AVX instructions/64 CPU cache line
-    posix_memalign(reinterpret_cast<void**>(&aligned_b), 32, a_cols * b_cols * sizeof(double)); //64??
-
-    // Copy data from original matrix A to aligned memory
-    std::memcpy(aligned_a, a, a_rows * a_cols * sizeof(double));
-
-    // Transpose and copy data from original matrix B to aligned memory
-    for (int i = 0; i < a_cols; ++i) {
-        for (int j = 0; j < b_cols; ++j) {
-            aligned_b[i * b_cols + j] = b[j * a_cols + i];
-        }
-    }
-
-    // Initialize result matrix c to zero
-    for (int i = 0; i < a_rows * b_cols; ++i)
-        c[i] = 0.0;
-
-// Perform matrix multiplication using AVX intrinsics
-for (int i = 0; i < a_rows; ++i) {
-    // Loop over each row of matrix a
-    for (int j = 0; j < b_cols; ++j) {
-        // Loop over each column of matrix b
-        __m256d c_vec = _mm256_setzero_pd(); // Initialize a vector of zeros
-        // Initialize a 256-bit vector register with zeros to accumulate the results
-        for (int k = 0; k < a_cols; k += 4) {
-            // Loop over each element in the row of a and column of b in steps of 4
-            __m256d a_vec = _mm256_load_pd(&aligned_a[i * a_cols + k]);
-            // Load 4 double-precision elements from the current row of matrix a into a 256-bit vector register
-            __m256d b_vec = _mm256_load_pd(&aligned_b[j * a_cols + k]);
-            // Load 4 double-precision elements from the current column of matrix b (transposed) into a 256-bit vector register
-            c_vec = _mm256_fmadd_pd(a_vec, b_vec, c_vec);
-            // Perform fused multiply-add: multiply elements of a_vec and b_vec, then add the result to c_vec
-        }
-        // Sum the elements of c_vec and store in c[i * b_cols + j]
-        c[i * b_cols + j] += c_vec[0] + c_vec[1] + c_vec[2] + c_vec[3];
-        // Sum the four elements in the 256-bit vector register and add the result to the corresponding element in matrix c
-    }
-}
-    // Clean up
-    free(aligned_a);
-    free(aligned_b);
-}
-
-
 void mm_vectorized_64(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
     // Allocate aligned memory for matrices A and B
     double *aligned_a, *aligned_b;
@@ -507,38 +460,13 @@ void mm_blocked(const double *a, const double *b, double *c, const int a_rows, c
             }
         }
     }
-
-    // TODO: get rid of std::min!!!
-
     // Clean up
     free(aligned_a);
     free(aligned_b);
 }
 
 
-//void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
-//               int a_idx, int b_idx, int height, int width, int l, int r) {
-
-
-// Preprocessing/packing function
-
-//void pack(const double *a, const double *b, double **a_aligned, double **b_aligned_transposed, const int a_rows, const int a_cols, const int b_cols) {
-//    // Allocate aligned memory for matrices A and B
-//    aligned_vector<double> a_aligned(a_rows * a_cols);
-//    aligned_vector<double> b_aligned_transposed(a_cols * b_cols);
-//    // a and b are 64 bit aligned
-//
-//    // Copy data from original matrix A to aligned memory
-//    *a_aligned =
-//
-//    // Transpose and copy data from original matrix B to aligned memory
-//    for (int i = 0; i < a_cols; ++i) {
-//        for (int j = 0; j < b_cols; ++j) {
-//            (*b_aligned_transposed)[i * b_cols + j] = b[j * a_cols + i];
-//        }
-//    }
-//}
-
+// Preprocessing/packing function to align matrices A and B and transpose B
 void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned_transposed, const int a_rows, const int a_cols, const int b_cols) {
     // Allocate aligned memory for matrices A and B
     a_aligned.resize(a_rows * a_cols);
@@ -556,7 +484,7 @@ void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, a
 }
 
 // Blocked matrix multiplication with packed data
-void mm_blocked_packed(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+void mm_blocked_packed_stdmin(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
     // Pack data
     aligned_vector<double> a_aligned;
     aligned_vector<double> b_aligned_transposed;
@@ -582,9 +510,47 @@ void mm_blocked_packed(const double *a, const double *b, double *c, const int a_
                 for (int i = i2; i < std::min(i2+b2, a_cols); i += height) {
                     for (int j = i3; j < std::min(i3 + b3, b_cols); j += width) {
                         kernel(a_aligned.data(), b_aligned_transposed.data(), c, a_rows, b_cols, a_cols, i, j, height, width, i1, std::min(i1+b1, a_rows));
-                    }// TODO: get rid of std::min!!!
+                    }
                 }
             }
         }
     }
 }
+
+// Blocked matrix multiplication with packed data and no std::min
+void mm_blocked_packed(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+    // Pack data
+    aligned_vector<double> a_aligned;
+    aligned_vector<double> b_aligned_transposed;
+    pack(a, b, a_aligned, b_aligned_transposed, a_rows, a_cols, b_cols);
+
+    // Initialize result matrix c to zero
+    for (int i = 0; i < a_rows * b_cols; ++i)
+        c[i] = 0.0;
+
+    // kernel size
+    int height = 4;
+    int width = 4;
+
+    // Block matrix multiplication
+    const int b3 = 32;
+    const int b2 = 64;
+    const int b1 = 128; // TODO: try different block sizes
+
+    for (int i3 = 0; i3 < b_cols; i3 += b3) {
+        for (int i2 = 0; i2 < a_cols; i2 += b2) {
+            for (int i1 = 0; i1 < a_rows; i1 += b1) {
+                // multiply the block
+//                for (int i = i2; i < std::min(i2+b2, a_cols); i += height) { // no std::min
+                 for (int i = i2; i < ((i2+b2) < a_cols ? i2+b2 : a_cols); i += height) {
+//                    for (int j = i3; j < std::min(i3 + b3, b_cols); j += width) {
+                     for (int j = i3; j < ((i3 + b3) < b_cols ? i3 + b3 : b_cols); j += width) {
+                        kernel(a_aligned.data(), b_aligned_transposed.data(), c, a_rows, b_cols, a_cols, i, j, height, width, i1, ((i1+b1) < a_rows ? i1+b1 : a_rows)); // no std::min
+                    }
+                }
+            }
+        }
+    }
+}
+
+

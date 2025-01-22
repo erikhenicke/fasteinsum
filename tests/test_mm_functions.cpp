@@ -38,7 +38,6 @@ int main() {
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_transposed, "mm_transposed");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_auto_vectorized, "mm_auto_vectorized");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_omp_vectorized, "mm_omp_vectorized");
-    multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_32, "mm_vectorized_32");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_64, "mm_vectorized_64");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_pipe_2, "mm_vectorized_pipe_2");
     multiply_and_print(a.data(), b.data(), c.data(), a_rows, b_cols, a_cols, mm_vectorized_pipe_8, "mm_vectorized_pipe_8");
