@@ -48,7 +48,7 @@ int main() {
     int num_repeats = 2;
 
     // Example matrix sizes
-    int a_rows = 1024, b_cols = 1024, a_cols = 1024;
+    int a_rows = 2048, b_cols = 2048, a_cols = 2048;
     std::vector<double> a(a_rows * a_cols);
     std::vector<double> b(a_cols * b_cols);
     std::vector<double> c(a_rows * b_cols, 0.0);
@@ -76,6 +76,10 @@ int main() {
     for (int b3 : b3_sizes) {
         for (int b2 : b2_sizes) {
             for (int b1 : b1_sizes) {
+
+                if (b3 > b2 || b2 > b1) {
+                    continue;
+                }
 
                 double total_time = 0.0;
                 cout << "Running for b3: " << b3 << " b2: " << b2 << " b1: " << b1 << endl;
