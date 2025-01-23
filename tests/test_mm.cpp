@@ -75,6 +75,11 @@ TEST_CASE("Matrix Multiplication Functions", "[mm]") {
             test_function(mm_kernel, size);
         }
     }
+    SECTION("mm_kernel2") {
+        for (int size : sizes) {
+            test_function(mm_kernel2, size);
+        }
+    }
     SECTION("mm_blocked") {
         for (int size : sizes) {
             test_function(mm_blocked, size);

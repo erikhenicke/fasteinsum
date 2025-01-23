@@ -24,6 +24,7 @@ void mm_vectorized_pipe_2(const double *a, const double *b, double *c, const int
 void mm_vectorized_pipe_8(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
 
 void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
+void mm_kernel2(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
 void mm_blocked(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
 void mm_blocked_packed_stdmin(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
 void mm_blocked_packed(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
@@ -33,7 +34,8 @@ void mm_blocked_packed(const double *a, const double *b, double *c, const int a_
 void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned_transposed, const int a_rows, const int a_cols, const int b_cols);
 void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
                int a_idx, int b_idx, int height, int width, int l, int r) ;
-
+void kernel2(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
+               int a_idx, int b_idx, int height, int width, int l, int r) ;
 
 #endif //MM_H
 

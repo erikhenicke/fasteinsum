@@ -377,6 +377,71 @@ void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, c
     }
 }
 
+// Tried: Prefetching data. actually slows down
+
+void kernel2(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
+               int a_idx, int b_idx, int height, int width, int l, int r) {
+    for (int i = a_idx; i < a_idx + height; ++i) {
+        for (int j = b_idx; j < b_idx + width; ++j) {
+            __m256d c_vec1 = _mm256_setzero_pd();
+            __m256d c_vec2 = _mm256_setzero_pd();
+            __m256d c_vec3 = _mm256_setzero_pd();
+            __m256d c_vec4 = _mm256_setzero_pd();
+            __m256d c_vec5 = _mm256_setzero_pd();
+            __m256d c_vec6 = _mm256_setzero_pd();
+            __m256d c_vec7 = _mm256_setzero_pd();
+            __m256d c_vec8 = _mm256_setzero_pd();
+            for (int k = l; k < r; k += 32) {
+//                _mm_prefetch((const char*)&aligned_a[i * a_cols + k + 32], _MM_HINT_T0);
+//                _mm_prefetch((const char*)&aligned_b[j * a_cols + k + 32], _MM_HINT_T0);
+
+                __m256d a_vec1 = _mm256_load_pd(&aligned_a[i * a_cols + k]);
+                __m256d b_vec1 = _mm256_load_pd(&aligned_b[j * a_cols + k]);
+                c_vec1 = _mm256_fmadd_pd(a_vec1, b_vec1, c_vec1);
+
+                __m256d a_vec2 = _mm256_load_pd(&aligned_a[i * a_cols + k + 4]);
+                __m256d b_vec2 = _mm256_load_pd(&aligned_b[j * a_cols + k + 4]);
+                c_vec2 = _mm256_fmadd_pd(a_vec2, b_vec2, c_vec2);
+
+                __m256d a_vec3 = _mm256_load_pd(&aligned_a[i * a_cols + k + 8]);
+                __m256d b_vec3 = _mm256_load_pd(&aligned_b[j * a_cols + k + 8]);
+                c_vec3 = _mm256_fmadd_pd(a_vec3, b_vec3, c_vec3);
+
+                __m256d a_vec4 = _mm256_load_pd(&aligned_a[i * a_cols + k + 12]);
+                __m256d b_vec4 = _mm256_load_pd(&aligned_b[j * a_cols + k + 12]);
+                c_vec4 = _mm256_fmadd_pd(a_vec4, b_vec4, c_vec4);
+
+                __m256d a_vec5 = _mm256_load_pd(&aligned_a[i * a_cols + k + 16]);
+                __m256d b_vec5 = _mm256_load_pd(&aligned_b[j * a_cols + k + 16]);
+                c_vec5 = _mm256_fmadd_pd(a_vec5, b_vec5, c_vec5);
+
+                __m256d a_vec6 = _mm256_load_pd(&aligned_a[i * a_cols + k + 20]);
+                __m256d b_vec6 = _mm256_load_pd(&aligned_b[j * a_cols + k + 20]);
+                c_vec6 = _mm256_fmadd_pd(a_vec6, b_vec6, c_vec6);
+
+                __m256d a_vec7 = _mm256_load_pd(&aligned_a[i * a_cols + k + 24]);
+                __m256d b_vec7 = _mm256_load_pd(&aligned_b[j * a_cols + k + 24]);
+                c_vec7 = _mm256_fmadd_pd(a_vec7, b_vec7, c_vec7);
+
+                __m256d a_vec8 = _mm256_load_pd(&aligned_a[i * a_cols + k + 28]);
+                __m256d b_vec8 = _mm256_load_pd(&aligned_b[j * a_cols + k + 28]);
+                c_vec8 = _mm256_fmadd_pd(a_vec8, b_vec8, c_vec8);
+            }
+            c_vec1 = _mm256_add_pd(c_vec1, c_vec2);
+            c_vec3 = _mm256_add_pd(c_vec3, c_vec4);
+            c_vec5 = _mm256_add_pd(c_vec5, c_vec6);
+            c_vec7 = _mm256_add_pd(c_vec7, c_vec8);
+            c_vec1 = _mm256_add_pd(c_vec1, c_vec3);
+            c_vec5 = _mm256_add_pd(c_vec5, c_vec7);
+            c_vec1 = _mm256_add_pd(c_vec1, c_vec5);
+            __m128d c_low = _mm256_castpd256_pd128(c_vec1);
+            __m128d c_high = _mm256_extractf128_pd(c_vec1, 1);
+            c_low = _mm_add_pd(c_low, c_high);
+            c[i * b_cols + j] += c_low[0] + c_low[1];
+        }
+    }
+}
+
 void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
     // Allocate aligned memory for matrices A and B
     double *aligned_a, *aligned_b;
@@ -415,6 +480,46 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
     free(aligned_a);
     free(aligned_b);
 }
+
+void mm_kernel2(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+    // Allocate aligned memory for matrices A and B
+    double *aligned_a, *aligned_b;
+    posix_memalign(reinterpret_cast<void**>(&aligned_a), 64, a_rows * a_cols * sizeof(double));
+    posix_memalign(reinterpret_cast<void**>(&aligned_b), 64, a_cols * b_cols * sizeof(double));
+
+    // Copy data from original matrix A to aligned memory
+    std::memcpy(aligned_a, a, a_rows * a_cols * sizeof(double));
+
+    // Transpose and copy data from original matrix B to aligned memory
+    for (int i = 0; i < a_cols; ++i) {
+        for (int j = 0; j < b_cols; ++j) {
+            aligned_b[i * b_cols + j] = b[j * a_cols + i];
+        }
+    }
+
+    // Initialize result matrix c to zero
+    for (int i = 0; i < a_rows * b_cols; ++i)
+        c[i] = 0.0;
+
+    // kernel // TODO: try different kernel sizes
+    int height = 4;
+    int width = 4;
+    // TODO: Pad Matrices so that dimensions are multiples of 4 and shared dim is multiple of 32
+
+    // Perform matrix multiplication using AVX intrinsics with pipelined FMA calls
+    for (int i = 0; i < a_rows; i += height) { // TODO: use a_rows_padded here
+        for (int j = 0; j < b_cols; j += width) { // TODO: use b_cols_padded here
+//            std::cout << "i: " << i << " j: " << j << std::endl;
+            kernel2(aligned_a, aligned_b, c, a_rows, b_cols, a_cols, i, j, height, width, 0, a_cols);
+            // for now l=0 and r=a_cols, later in block matrix multiplication, l and r will be updated
+        }
+    }
+
+    // Clean up
+    free(aligned_a);
+    free(aligned_b);
+}
+
 
 // Block matrix multiplication
 // Want B in L1 Cache because it is accessed in inner loop
