@@ -13,7 +13,7 @@ template <class T>
 using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 void kernel(double *aligned_a, double *aligned_b, double *c, const int a_rows, const int b_cols, const int a_cols,
-               int a_idx, int b_idx, int l, int r) ;
-void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);
+               int a_idx, int b_idx, int l, int r, int h, int w, int simd_length, int wl) ;
+void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl);
 
 #endif //KERNEL_H

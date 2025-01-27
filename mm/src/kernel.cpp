@@ -11,6 +11,7 @@
 #include <immintrin.h>
 #include <random>
 #include <chrono>
+#include <fstream>
 
 
 // aligned_vector is a 64 byte aligned std::vector
@@ -20,11 +21,11 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 //using namespace std;
 
-const int h = 6; // kernel height
-const int w = 8; // kernel width
-const int simd_length = 4; // number of doubles in a SIMD register
-const int wl = 2; //width divided by simd_length
-// TODO: In the end hardcode height and width
+//const int h = 6; // kernel height
+//const int w = 8; // kernel width
+//const int simd_length = 4; // number of doubles in a SIMD register
+//const int wl = 2; //width divided by simd_length
+//// TODO: In the end hardcode height and width
 
 // Naive implementation using three nested loops
 void mm_naive(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
@@ -87,7 +88,7 @@ void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, a
 
 
 
-void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl) {
     // Pad a_rows and b_cols to be multiples of h and w
     int a_rows_padded = a_rows + (h - a_rows % h) % h;
     int b_cols_padded = b_cols + (w - b_cols % w) % w;
@@ -101,7 +102,7 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
     // Perform matrix multiplication using AVX intrinsics with pipelined FMA calls
     for (int i = 0; i < a_rows_padded; i += h) {
         for (int j = 0; j < b_cols_padded; j += w) {
-            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, i, j, 0, a_cols);
+            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, i, j, 0, a_cols, h, w, simd_length, wl);
         }
     }
 
@@ -134,10 +135,58 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
 //    std::memcpy(c, c_aligned.data(), a_rows * b_cols * sizeof(double));
 //}
 
-void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
-             int a_idx, int b_idx, int l, int r) {
+//void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
+//             int a_idx, int b_idx, int l, int r) {
+//
+//    // Create a vector of __m256d with size height * width
+//    aligned_vector<__m256d> t(h * wl); // kernel size = height * width, temporary t stores 4 doubles in each element, -> h * wl = 6 * 2 = 12
+//    // t[i]: i-th element of t (a 4 element _m256d SIMD vector), t[i][j]: j-th double of i-th element of t
+//
+//    // Initialize each element with zeros
+//    __m256d zero = _mm256_setzero_pd();
+//    for (int i = 0; i < h * wl; ++i) {
+//        t[i] = zero;
+//    }
+//
+//    for (int k = l; k < r; k++) {
+//        __m256d b0 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx]);
+//        __m256d b1 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx + simd_length]);
+//
+//        __m256d a0 = _mm256_broadcast_sd(&a_aligned[a_idx * a_cols + k]);
+//        t[0] = _mm256_fmadd_pd(a0, b0, t[0]);
+//        t[1] = _mm256_fmadd_pd(a0, b1, t[1]);
+//
+//        __m256d a1 = _mm256_broadcast_sd(&a_aligned[(a_idx + 1) * a_cols + k]);
+//        t[2] = _mm256_fmadd_pd(a1, b0, t[2]);
+//        t[3] = _mm256_fmadd_pd(a1, b1, t[3]);
+//
+//        __m256d a2 = _mm256_broadcast_sd(&a_aligned[(a_idx + 2) * a_cols + k]);
+//        t[4] = _mm256_fmadd_pd(a2, b0, t[4]);
+//        t[5] = _mm256_fmadd_pd(a2, b1, t[5]);
+//
+//        __m256d a3 = _mm256_broadcast_sd(&a_aligned[(a_idx + 3) * a_cols + k]);
+//        t[6] = _mm256_fmadd_pd(a3, b0, t[6]);
+//        t[7] = _mm256_fmadd_pd(a3, b1, t[7]);
+//
+//        __m256d a4 = _mm256_broadcast_sd(&a_aligned[(a_idx + 4) * a_cols + k]);
+//        t[8] = _mm256_fmadd_pd(a4, b0, t[8]);
+//        t[9] = _mm256_fmadd_pd(a4, b1, t[9]);
+//
+//        __m256d a5 = _mm256_broadcast_sd(&a_aligned[(a_idx + 5) * a_cols + k]);
+//        t[10] = _mm256_fmadd_pd(a5, b0, t[10]);
+//        t[11] = _mm256_fmadd_pd(a5, b1, t[11]);
+//    }
+//
+//    // Update c with the values in t (c must be aligned)
+//    for (int i = 0; i < h; ++i) {
+//        for (int j = 0; j < wl; ++j) {
+//            _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], t[i * wl + j]);
+//        }
+//    }
+//}
 
-//    std::cout << "0" << std::endl;
+void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
+             int a_idx, int b_idx, int l, int r, int h, int w, int simd_length, int wl) {
 
     // Create a vector of __m256d with size height * width
     aligned_vector<__m256d> t(h * wl); // kernel size = height * width, temporary t stores 4 doubles in each element, -> h * wl = 6 * 2 = 12
@@ -149,50 +198,15 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a
         t[i] = zero;
     }
 
-    // Print t
-//    for (int i = 0; i < h * wl; ++i) {
-//        for (int j = 0; j < simd_length; ++j) {
-//        	std::cout << t[i][j] << " ";
-//        }
-//    }
-
-//    std::cout << "1" << std::endl;
-
     for (int k = l; k < r; k++) {
-        __m256d b0 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx]);
-        __m256d b1 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx + simd_length]);
-//        __m256d b0 = _mm256_load_pd(&b_aligned[(k * b_cols + b_idx)/simd_length]);
-//        __m256d b1 = _mm256_load_pd(&b_aligned[(k * b_cols + b_idx)/simd_length + 1]); // indexing???
-
-//        std::cout << "2" << std::endl;
-
-        __m256d a0 = _mm256_broadcast_sd(&a_aligned[a_idx * a_cols + k]);
-        t[0] = _mm256_fmadd_pd(a0, b0, t[0]);
-        t[1] = _mm256_fmadd_pd(a0, b1, t[1]);
-
-        __m256d a1 = _mm256_broadcast_sd(&a_aligned[(a_idx + 1) * a_cols + k]);
-        t[2] = _mm256_fmadd_pd(a1, b0, t[2]);
-        t[3] = _mm256_fmadd_pd(a1, b1, t[3]);
-
-        __m256d a2 = _mm256_broadcast_sd(&a_aligned[(a_idx + 2) * a_cols + k]);
-        t[4] = _mm256_fmadd_pd(a2, b0, t[4]);
-        t[5] = _mm256_fmadd_pd(a2, b1, t[5]);
-
-        __m256d a3 = _mm256_broadcast_sd(&a_aligned[(a_idx + 3) * a_cols + k]);
-        t[6] = _mm256_fmadd_pd(a3, b0, t[6]);
-        t[7] = _mm256_fmadd_pd(a3, b1, t[7]);
-
-        __m256d a4 = _mm256_broadcast_sd(&a_aligned[(a_idx + 4) * a_cols + k]);
-        t[8] = _mm256_fmadd_pd(a4, b0, t[8]);
-        t[9] = _mm256_fmadd_pd(a4, b1, t[9]);
-
-        __m256d a5 = _mm256_broadcast_sd(&a_aligned[(a_idx + 5) * a_cols + k]);
-        t[10] = _mm256_fmadd_pd(a5, b0, t[10]);
-        t[11] = _mm256_fmadd_pd(a5, b1, t[11]);
+        for (int j = 0; j < wl; j++) {
+            __m256d b0 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx + j * simd_length]);
+            for (int i = 0; i < h; i++) {
+                __m256d a0 = _mm256_broadcast_sd(&a_aligned[(a_idx + i) * a_cols + k]);
+                t[i * wl + j] = _mm256_fmadd_pd(a0, b0, t[i * wl + j]);
+            }
+        }
     }
-
-
-// TODO: align c
 
     // Update c with the values in t
     for (int i = 0; i < h; ++i) {
@@ -203,10 +217,9 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a
 }
 
 
-
 int main() {
   // mulktiply two random matrices of size 1024 x 1024 using mm_kernel
-    int size = 703;
+    int size = 512;
     std::vector<double> a(size * size), b(size * size), c(size * size);
     for (int i = 0; i < size * size; ++i) {
         a[i] = static_cast<double>(rand()) / RAND_MAX;
@@ -215,7 +228,7 @@ int main() {
 
     // measure the time taken by mm_kernel
     auto start = std::chrono::high_resolution_clock::now();
-    mm_kernel(a.data(), b.data(), c.data(), size, size, size);
+    mm_kernel(a.data(), b.data(), c.data(), size, size, size, 6, 8, 4, 2);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "Time taken by mm_kernel: " << elapsed.count() << " ms" << std::endl;
@@ -237,6 +250,63 @@ int main() {
         }
     }
     std::cout << "Result of mm_kernel is " << (equal ? "correct" : "incorrect") << std::endl;
+
+
+    // For different height, width and matrix sizes time mm_kernel
+    int simd_length = 4;
+    std::string output_file = "kernel_size_results.csv";
+
+    std::vector<int> matrix_sizes = {703, 1024, 1500, 2048};
+    std::vector<int> heights = {4, 6, 8, 12};
+
+    std::vector<int> widths = {4, 8, 12, 16, 20};
+
+    int num_repeats = 2;
+
+    std::ofstream ofs(output_file);
+    if (!ofs.is_open()) {
+        std::cerr << "Failed to open output file: " << output_file << std::endl;
+        return -1;
+    }
+
+    ofs << "Matrix Size,Height,Width,Average Time (ms)" << std::endl;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    for (int size : matrix_sizes) {
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+        std::vector<double> a(size * size), b(size * size), c(size * size);
+
+        for (auto &val : a) val = dis(gen);
+        for (auto &val : b) val = dis(gen);
+
+        for (int height : heights) {
+            for (int width : widths) {
+            	int wl = width / simd_length;
+
+                double total_time = 0.0;
+
+                for (int repeat = 0; repeat < num_repeats; ++repeat) {
+                    std::fill(c.begin(), c.end(), 0.0);
+
+                    auto start = std::chrono::high_resolution_clock::now();
+                    mm_kernel(a.data(), b.data(), c.data(), size, size, size, height, width, simd_length, wl);
+                    auto end = std::chrono::high_resolution_clock::now();
+
+                    std::chrono::duration<double, std::milli> elapsed = end - start;
+                    total_time += elapsed.count();
+                }
+
+                double average_time = total_time / num_repeats;
+                ofs << size << "," << height << "," << width << "," << average_time << std::endl;
+            }
+        }
+    }
+
+    ofs.close();
+
+    std::cout << "Benchmark results saved to " << output_file << std::endl;
 
     return 0;
 }
