@@ -10,7 +10,7 @@
 
 // aligned_vector is a 64 byte aligned std::vector
 template <class T>
-using aligned_vector = std::vector<T, alligned_allocator<T, 64>>;
+using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 // Matrix Multiplication Functions
 void mm_naive(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols);

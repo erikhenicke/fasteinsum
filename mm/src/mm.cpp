@@ -13,7 +13,7 @@
 
 // aligned_vector is a 64 byte aligned std::vector
 template <class T>
-using aligned_vector = std::vector<T, alligned_allocator<T, 64>>;
+using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 
 // Naive implementation using three nested loops
