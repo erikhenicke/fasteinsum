@@ -191,9 +191,6 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a
         t[11] = _mm256_fmadd_pd(a5, b1, t[11]);
     }
 
-
-// TODO: align c
-
     // Update c with the values in t
     for (int i = 0; i < h; ++i) {
         for (int j = 0; j < wl; ++j) {
