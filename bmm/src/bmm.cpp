@@ -37,17 +37,18 @@ void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, a
           aligned_vector<double> &c_aligned, const int batch_dim, const int a_rows, const int b_cols, const int a_cols,
           const int a_rows_padded, const int b_cols_padded, const int a_cols_padded) {
     // Allocate aligned memory for matrices A, B, and C with padded dimensions
-    a_aligned.resize(batch_dim * a_rows_padded * a_cols);
-    b_aligned.resize(batch_dim * a_cols * b_cols_padded);
+    a_aligned.resize(batch_dim * a_rows_padded * a_cols_padded);
+    b_aligned.resize(batch_dim * a_cols_padded * b_cols_padded);
     c_aligned.resize(batch_dim * a_rows_padded * b_cols_padded);
 
     // Copy data from original matrix A to aligned memory and set padded elements to 0
     for (int d = 0; d < batch_dim; ++d) {
-        for (int i = 0; i < a_rows_padded; ++i) {
+        for (int i = 0; i < a_rows; ++i) {
             if (i < a_rows) {
-                std::memcpy(&a_aligned[d * a_rows_padded * a_cols + i * a_cols], &a[d * a_rows * a_cols + i * a_cols], a_cols * sizeof(double));
+                std::memcpy(&a_aligned[d * a_rows_padded * a_cols_padded + i * a_cols_padded], &a[d * a_rows * a_cols + i * a_cols], a_cols * sizeof(double));
+                std::fill(&a_aligned[d * a_rows_padded * a_cols_padded + i * a_cols_padded + a_cols], &a_aligned[d * a_rows_padded * a_cols_padded + (i + 1) * a_cols_padded], 0.0);
             } else {
-                std::fill(&a_aligned[d * a_rows_padded * a_cols + i * a_cols], &a_aligned[d * a_rows_padded * a_cols + (i + 1) * a_cols], 0.0);
+                std::fill(&a_aligned[d * a_rows_padded * a_cols_padded + i * a_cols_padded], &a_aligned[d * a_rows_padded * a_cols_padded + (i + 1) * a_cols_padded], 0.0);
             }
         }
     }
@@ -56,10 +57,10 @@ void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, a
     for (int d = 0; d < batch_dim; ++d) {
         for (int i = 0; i < a_cols; ++i) {
             if (i < a_cols) {
-                std::memcpy(&b_aligned[d * a_cols * b_cols_padded + i * b_cols_padded], &b[d * a_cols * b_cols + i * b_cols], b_cols * sizeof(double));
-                std::fill(&b_aligned[d * a_cols * b_cols_padded + i * b_cols_padded + b_cols], &b_aligned[d * a_cols * b_cols_padded + (i + 1) * b_cols_padded], 0.0);
+                std::memcpy(&b_aligned[d * a_cols_padded * b_cols_padded + i * b_cols_padded], &b[d * a_cols * b_cols + i * b_cols], b_cols * sizeof(double));
+                std::fill(&b_aligned[d * a_cols_padded * b_cols_padded + i * b_cols_padded + b_cols], &b_aligned[d * a_cols_padded * b_cols_padded + (i + 1) * b_cols_padded], 0.0);
             } else {
-                std::fill(&b_aligned[d * a_cols * b_cols_padded + i * b_cols_padded], &b_aligned[d * a_cols * b_cols_padded + (i + 1) * b_cols_padded], 0.0);
+                std::fill(&b_aligned[d * a_cols_padded * b_cols_padded + i * b_cols_padded], &b_aligned[d * a_cols_padded * b_cols_padded + (i + 1) * b_cols_padded], 0.0);
             }
         }
     }
@@ -153,7 +154,47 @@ void bmm(const double *a, const double *b, double *c, const int batch_dim, const
 
 //DEBUGGING
 
-void kernel_mm(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
+void mm_naive(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
+    for (int i = 0; i < a_rows; ++i)
+        for (int j = 0; j < b_cols; ++j)
+            for (int k = 0; k < a_cols; ++k)
+                c[i*b_cols + j] += a[i*a_cols + k] * b[k*b_cols + j];
+}
+
+// Preprocessing/packing function to align matrices A and B and C
+// (!) B is NOT transposed
+// c is initialized to zero
+void pack1(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned,
+          aligned_vector<double> &c_aligned, const int a_rows, const int b_cols, const int a_cols, const int a_rows_padded, const int b_cols_padded) {
+    // Allocate aligned memory for matrices A, B, and C with padded dimensions
+    a_aligned.resize(a_rows_padded * a_cols);
+    b_aligned.resize(a_cols * b_cols_padded);
+    c_aligned.resize(a_rows_padded * b_cols_padded);
+
+    // Copy data from original matrix A to aligned memory and set padded elements to 0
+    for (int i = 0; i < a_rows_padded; ++i) {
+        if (i < a_rows) {
+            std::memcpy(&a_aligned[i * a_cols], &a[i * a_cols], a_cols * sizeof(double));
+        } else {
+            std::fill(&a_aligned[i * a_cols], &a_aligned[(i + 1) * a_cols], 0.0);
+        }
+    }
+
+    // Copy data from original matrix B to aligned memory and set padded elements to 0
+    for (int i = 0; i < a_cols; ++i) {
+        if (i < a_cols) {
+            std::memcpy(&b_aligned[i * b_cols_padded], &b[i * b_cols], b_cols * sizeof(double));
+            std::fill(&b_aligned[i * b_cols_padded + b_cols], &b_aligned[(i + 1) * b_cols_padded], 0.0);
+        } else {
+            std::fill(&b_aligned[i * b_cols_padded], &b_aligned[(i + 1) * b_cols_padded], 0.0);
+        }
+    }
+
+    // Initialize result matrix c to zero
+    std::fill(c_aligned.begin(), c_aligned.end(), 0.0);
+}
+
+void kernel1(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
              int a_idx, int b_idx, int l, int r, int h, int w, int simd_length, int wl) {
 
     // Create a vector of __m256d with size height * width
@@ -184,36 +225,6 @@ void kernel_mm(double *a_aligned, double *b_aligned, double *c_aligned, const in
     }
 }
 
-void pack_mm(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned,
-          aligned_vector<double> &c_aligned, const int a_rows, const int a_cols, const int b_cols, const int a_rows_padded, const int b_cols_padded) {
-    // Allocate aligned memory for matrices A, B, and C with padded dimensions
-    a_aligned.resize(a_rows_padded * a_cols);
-    b_aligned.resize(a_cols * b_cols_padded);
-    c_aligned.resize(a_rows_padded * b_cols_padded);
-
-    // Copy data from original matrix A to aligned memory and set padded elements to 0
-    for (int i = 0; i < a_rows_padded; ++i) {
-        if (i < a_rows) {
-            std::memcpy(&a_aligned[i * a_cols], &a[i * a_cols], a_cols * sizeof(double));
-        } else {
-            std::fill(&a_aligned[i * a_cols], &a_aligned[(i + 1) * a_cols], 0.0);
-        }
-    }
-
-    // Copy data from original matrix B to aligned memory and set padded elements to 0
-    for (int i = 0; i < a_cols; ++i) {
-        if (i < a_cols) {
-            std::memcpy(&b_aligned[i * b_cols_padded], &b[i * b_cols], b_cols * sizeof(double));
-            std::fill(&b_aligned[i * b_cols_padded + b_cols], &b_aligned[(i + 1) * b_cols_padded], 0.0);
-        } else {
-            std::fill(&b_aligned[i * b_cols_padded], &b_aligned[(i + 1) * b_cols_padded], 0.0);
-        }
-    }
-
-    // Initialize result matrix c to zero
-    std::fill(c_aligned.begin(), c_aligned.end(), 0.0);
-}
-
 void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl) {
     // Pad a_rows and b_cols to be multiples of h and w
     int a_rows_padded = a_rows + (h - a_rows % h) % h;
@@ -223,12 +234,18 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
     aligned_vector<double> a_aligned;
     aligned_vector<double> b_aligned;
     aligned_vector<double> c_aligned;
-    pack_mm(a, b, a_aligned, b_aligned, c_aligned, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
+    pack(a, b, a_aligned, b_aligned, c_aligned, 0, a_rows, b_cols, a_cols, a_rows_padded, b_cols_padded, a_cols);
+
+//
+//    void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned,
+//              aligned_vector<double> &c_aligned, const int batch_dim, const int a_rows, const int b_cols, const int a_cols,
+//              const int a_rows_padded, const int b_cols_padded, const int a_cols_padded) {
+//
 
     // Perform matrix multiplication using AVX intrinsics with pipelined FMA calls
     for (int i = 0; i < a_rows_padded; i += h) {
         for (int j = 0; j < b_cols_padded; j += w) {
-            kernel_mm(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, i, j, 0, a_cols, h, w, simd_length, wl);
+            kernel1(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, i, j, 0, a_cols, h, w, simd_length, wl);
         }
     }
 
@@ -237,15 +254,6 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
         std::memcpy(&c[i * b_cols], &c_aligned[i * b_cols_padded], b_cols * sizeof(double));
     }
 }
-
-void mm_naive(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
-    for (int i = 0; i < a_rows; ++i)
-        for (int j = 0; j < b_cols; ++j)
-            for (int k = 0; k < a_cols; ++k)
-                c[i*b_cols + j] += a[i*a_cols + k] * b[k*b_cols + j];
-}
-
-
 
 
 int main() {
@@ -259,7 +267,11 @@ int main() {
 
     // measure the time taken by mm_kernel
     auto start = std::chrono::high_resolution_clock::now();
-    mm_kernel(a.data(), b.data(), c.data(), size, size, size, 8, 16, 4, 2);
+    int h = 8;
+    int w = 16;
+    int l = 4;
+    int wl = w / l;
+    mm_kernel(a.data(), b.data(), c.data(), size, size, size, h, w, l, wl);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Time taken by mm_kernel: " << elapsed.count() << " seconds" << std::endl;
