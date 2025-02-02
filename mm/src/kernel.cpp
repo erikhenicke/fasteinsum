@@ -103,6 +103,9 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
     for (int i = 0; i < a_rows_padded; i += h) {
         for (int j = 0; j < b_cols_padded; j += w) {
             kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, i, j, 0, a_cols, h, w, simd_length, wl);
+//	            for (int k = 0; k < a_cols; k += 32) {
+//                      kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, i, j, k, std::min(k + 32, a_cols), h, w, simd_length, wl);
+//                      }
         }
     }
 
@@ -112,78 +115,41 @@ void mm_kernel(const double *a, const double *b, double *c, const int a_rows, co
     }
 }
 
-//void mm_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols) {
-//    // Pad a_rows and b_cols to be multiples of h and w
-//    int a_rows_padded = a_rows + (h - a_rows % h) % h;
-//    int b_cols_padded = b_cols + (w - b_cols % w) % w;
-//
-//    // Pack data
-//    aligned_vector<double> a_aligned;
-//    aligned_vector<double> b_aligned;
-//    aligned_vector<double> c_aligned;
-//    pack(a, b, c, a_aligned, b_aligned, c_aligned, a_rows, a_cols, b_cols);
-//
-//    // Perform matrix multiplication using AVX intrinsics with pipelined FMA calls
-//    for (int i = 0; i < a_rows; i += h) { // TODO: use a_rows_padded here
-//        for (int j = 0; j < b_cols; j += w) { // TODO: use b_cols_padded here
-////            std::cout << "i: " << i << " j: " << j << std::endl;
-//            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows, b_cols, a_cols, i, j, 0, a_cols);
-//            // for now l=0 and r=a_cols, later in block matrix multiplication, l and r will be updated
-//        }
-//    }
-//    // Copy data from aligned memory to original matrix C
-//    std::memcpy(c, c_aligned.data(), a_rows * b_cols * sizeof(double));
-//}
+void mm_blocked_kernel(const double *a, const double *b, double *c, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_) {
+    // Pad a_rows and b_cols to be multiples of h and w
+    int a_rows_padded = a_rows + (h - a_rows % h) % h;
+    int b_cols_padded = b_cols + (w - b_cols % w) % w;
 
-//void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
-//             int a_idx, int b_idx, int l, int r) {
-//
-//    // Create a vector of __m256d with size height * width
-//    aligned_vector<__m256d> t(h * wl); // kernel size = height * width, temporary t stores 4 doubles in each element, -> h * wl = 6 * 2 = 12
-//    // t[i]: i-th element of t (a 4 element _m256d SIMD vector), t[i][j]: j-th double of i-th element of t
-//
-//    // Initialize each element with zeros
-//    __m256d zero = _mm256_setzero_pd();
-//    for (int i = 0; i < h * wl; ++i) {
-//        t[i] = zero;
-//    }
-//
-//    for (int k = l; k < r; k++) {
-//        __m256d b0 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx]);
-//        __m256d b1 = _mm256_load_pd(&b_aligned[k * b_cols + b_idx + simd_length]);
-//
-//        __m256d a0 = _mm256_broadcast_sd(&a_aligned[a_idx * a_cols + k]);
-//        t[0] = _mm256_fmadd_pd(a0, b0, t[0]);
-//        t[1] = _mm256_fmadd_pd(a0, b1, t[1]);
-//
-//        __m256d a1 = _mm256_broadcast_sd(&a_aligned[(a_idx + 1) * a_cols + k]);
-//        t[2] = _mm256_fmadd_pd(a1, b0, t[2]);
-//        t[3] = _mm256_fmadd_pd(a1, b1, t[3]);
-//
-//        __m256d a2 = _mm256_broadcast_sd(&a_aligned[(a_idx + 2) * a_cols + k]);
-//        t[4] = _mm256_fmadd_pd(a2, b0, t[4]);
-//        t[5] = _mm256_fmadd_pd(a2, b1, t[5]);
-//
-//        __m256d a3 = _mm256_broadcast_sd(&a_aligned[(a_idx + 3) * a_cols + k]);
-//        t[6] = _mm256_fmadd_pd(a3, b0, t[6]);
-//        t[7] = _mm256_fmadd_pd(a3, b1, t[7]);
-//
-//        __m256d a4 = _mm256_broadcast_sd(&a_aligned[(a_idx + 4) * a_cols + k]);
-//        t[8] = _mm256_fmadd_pd(a4, b0, t[8]);
-//        t[9] = _mm256_fmadd_pd(a4, b1, t[9]);
-//
-//        __m256d a5 = _mm256_broadcast_sd(&a_aligned[(a_idx + 5) * a_cols + k]);
-//        t[10] = _mm256_fmadd_pd(a5, b0, t[10]);
-//        t[11] = _mm256_fmadd_pd(a5, b1, t[11]);
-//    }
-//
-//    // Update c with the values in t (c must be aligned)
-//    for (int i = 0; i < h; ++i) {
-//        for (int j = 0; j < wl; ++j) {
-//            _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], t[i * wl + j]);
-//        }
-//    }
-//}
+    // Block sizes need to be multiples of h and w
+//    int b1 = b1_ - (b1_ % simd_length);
+    int b2 = b2_ - (b2_ % h);
+    int b3 = b3_ - (b3_ % w);
+
+    // Pack data
+    aligned_vector<double> a_aligned;
+    aligned_vector<double> b_aligned;
+    aligned_vector<double> c_aligned;
+    pack(a, b, a_aligned, b_aligned, c_aligned, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
+
+    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
+    for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
+        for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
+            for (int i1 = 0; i1 < a_cols; i1 += b1) {
+                for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
+                    for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
+                        kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols) , h, w, simd_length, wl);
+                    }
+                }//i1, std::min(i1 + b1, a_cols)
+            }
+        }
+    }
+
+    // Copy data from aligned memory to original matrix C, removing padding
+    for (int i = 0; i < a_rows; ++i) {
+        std::memcpy(&c[i * b_cols], &c_aligned[i * b_cols_padded], b_cols * sizeof(double));
+    }
+}
+
 
 void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a_rows, const int b_cols, const int a_cols,
              int a_idx, int b_idx, int l, int r, int h, int w, int simd_length, int wl) {
@@ -210,10 +176,30 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a
 
     // Update c with the values in t
     for (int i = 0; i < h; ++i) {
-        for (int j = 0; j < wl; ++j) {
-            _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], t[i * wl + j]);
+    	for (int j = 0; j < wl; ++j) {
+        	for (int k = 0; k < simd_length; ++k) {
+            	c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length + k] += t[i * wl + j][k];
+            }
         }
     }
+
+
+//    // Update c with the values in t, c += t
+//	for (int i = 0; i < h; ++i) {
+//    	for (int j = 0; j < wl; ++j) {
+//    	    __m256d c_val = _mm256_load_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length]);
+//    	    __m256d t_val = t[i * wl + j];
+//    	    __m256d result = _mm256_add_pd(c_val, t_val);
+//    	    _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], result);
+//    	}
+//	}
+
+//    // Update c with the values in t
+//    for (int i = 0; i < h; ++i) {
+//        for (int j = 0; j < wl; ++j) {
+//            _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], t[i * wl + j]);
+//        }
+//    }
 }
 
 
@@ -228,7 +214,7 @@ int main() {
 
     // measure the time taken by mm_kernel
     auto start = std::chrono::high_resolution_clock::now();
-    mm_kernel(a.data(), b.data(), c.data(), size, size, size, 6, 8, 4, 2);
+    mm_kernel(a.data(), b.data(), c.data(), size, size, size, 8, 8, 4, 2);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "Time taken by mm_kernel: " << elapsed.count() << " ms" << std::endl;
@@ -252,61 +238,90 @@ int main() {
     std::cout << "Result of mm_kernel is " << (equal ? "correct" : "incorrect") << std::endl;
 
 
-    // For different height, width and matrix sizes time mm_kernel
+    // Test correctness of mm_blocked_kernel
+    int b1 = 32, b2 = 64, b3 = 128;
+    int h = 3, w = 12;
     int simd_length = 4;
-    std::string output_file = "kernel_size_results.csv";
+    int wl = w / simd_length;
 
-    std::vector<int> matrix_sizes = {703, 1024, 1500, 2048};
-    std::vector<int> heights = {4, 6, 8, 12};
+    std::vector<double> c_blocked(size * size);
+    start = std::chrono::high_resolution_clock::now();
+    mm_blocked_kernel(a.data(), b.data(), c_blocked.data(), size, size, size, h, w, simd_length, wl, b1, b2, b3);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    std::cout << "Time taken by mm_blocked_kernel: " << elapsed.count() << " ms" << std::endl;
 
-    std::vector<int> widths = {4, 8, 12, 16, 20};
-
-    int num_repeats = 2;
-
-    std::ofstream ofs(output_file);
-    if (!ofs.is_open()) {
-        std::cerr << "Failed to open output file: " << output_file << std::endl;
-        return -1;
+    // print the first 10 elements of the result matrix
+    for (int i = 0; i < 10; ++i) {
+        std::cout << c_blocked[i] << " ";
     }
+    std::cout << std::endl;
 
-    ofs << "Matrix Size,Height,Width,Average Time (ms)" << std::endl;
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    for (int size : matrix_sizes) {
-        std::uniform_real_distribution<> dis(0.0, 1.0);
-        std::vector<double> a(size * size), b(size * size), c(size * size);
-
-        for (auto &val : a) val = dis(gen);
-        for (auto &val : b) val = dis(gen);
-
-        for (int height : heights) {
-            for (int width : widths) {
-            	int wl = width / simd_length;
-
-                double total_time = 0.0;
-
-                for (int repeat = 0; repeat < num_repeats; ++repeat) {
-                    std::fill(c.begin(), c.end(), 0.0);
-
-                    auto start = std::chrono::high_resolution_clock::now();
-                    mm_kernel(a.data(), b.data(), c.data(), size, size, size, height, width, simd_length, wl);
-                    auto end = std::chrono::high_resolution_clock::now();
-
-                    std::chrono::duration<double, std::milli> elapsed = end - start;
-                    total_time += elapsed.count();
-                }
-
-                double average_time = total_time / num_repeats;
-                ofs << size << "," << height << "," << width << "," << average_time << std::endl;
-            }
+    equal = true;
+    for (int i = 0; i < size * size; ++i) {
+        if (abs(c_ref[i] - c_blocked[i]) > 1e-6) {
+            equal = false;
+            break;
         }
     }
+    std::cout << "Result of mm_blocked_kernel is " << (equal ? "correct" : "incorrect") << std::endl;
 
-    ofs.close();
 
-    std::cout << "Benchmark results saved to " << output_file << std::endl;
+//    // For different height, width and matrix sizes time mm_kernel
+////    int simd_length = 4;
+//    std::string output_file = "kernel_size_results.csv";
+//
+//    std::vector<int> matrix_sizes = {703, 1024, 1500, 2048};
+//    std::vector<int> heights = {4, 6, 8, 12};
+//
+//    std::vector<int> widths = {4, 8, 12, 16, 20};
+//
+//    int num_repeats = 2;
+//
+//    std::ofstream ofs(output_file);
+//    if (!ofs.is_open()) {
+//        std::cerr << "Failed to open output file: " << output_file << std::endl;
+//        return -1;
+//    }
+//
+//    ofs << "Matrix Size,Height,Width,Average Time (ms)" << std::endl;
+//
+//    std::random_device rd;
+//    std::mt19937 gen(rd());
+//
+//    for (int size : matrix_sizes) {
+//        std::uniform_real_distribution<> dis(0.0, 1.0);
+//        std::vector<double> a(size * size), b(size * size), c(size * size);
+//
+//        for (auto &val : a) val = dis(gen);
+//        for (auto &val : b) val = dis(gen);
+//
+//        for (int height : heights) {
+//            for (int width : widths) {
+//            	int wl = width / simd_length;
+//
+//                double total_time = 0.0;
+//
+//                for (int repeat = 0; repeat < num_repeats; ++repeat) {
+//                    std::fill(c.begin(), c.end(), 0.0);
+//
+//                    auto start = std::chrono::high_resolution_clock::now();
+//                    mm_kernel(a.data(), b.data(), c.data(), size, size, size, height, width, simd_length, wl);
+//                    auto end = std::chrono::high_resolution_clock::now();
+//
+//                    std::chrono::duration<double, std::milli> elapsed = end - start;
+//                    total_time += elapsed.count();
+//                }
+//
+//                double average_time = total_time / num_repeats;
+//                ofs << size << "," << height << "," << width << "," << average_time << std::endl;
+//            }
+//        }
+//    }
+//
+//    ofs.close();
+//
+//    std::cout << "Benchmark results saved to " << output_file << std::endl;
 
     return 0;
 }
