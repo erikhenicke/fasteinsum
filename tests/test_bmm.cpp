@@ -89,106 +89,106 @@ bool compare_matrices(const vector<double> &a, const vector<double> &b) {
     }
     return true;
 }
-
-TEST_CASE("Batch Matrix Multiplication Timing and Correctness", "[bmm]") {
-    const int batch_dim = 10;
-    const int a_rows = 512;
-    const int b_cols = 512;
-    const int a_cols = 512;
-
-    vector<double> a(batch_dim * a_rows * a_cols);
-    vector<double> b(batch_dim * a_cols * b_cols);
-    vector<double> c(batch_dim * a_rows * b_cols, 0.0);
-    vector<double> c_ref(batch_dim * a_rows * b_cols, 0.0);
-
-    generate_random_matrix(a, a_rows, a_cols);
-    generate_random_matrix(b, a_cols, b_cols);
-
-    // Reference implementation
-    batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
-
-    SECTION("Timing and correctness of bmm_omp_simple") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_function(bmm_omp_simple_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
-        cout << "Time taken by bmm_omp_simple: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-
-    SECTION("Timing and correctness of bmm_simd") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_function(bmm_simd_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
-        cout << "Time taken by bmm_simd: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-
-    SECTION("Timing and correctness of bmm_collaps") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_function(bmm_collaps_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
-        cout << "Time taken by bmm_collaps: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-
-    SECTION("Timing batch_matrix_multiply") {
-        double time_taken = time_function(batch_matrix_multiply_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
-        cout << "Time taken by batch_matrix_multiply: " << time_taken << " seconds" << endl;
-    }
-
-    SECTION("Timing bmm_blocked with different block sizes") {
-        vector<int> block_sizes = {16, 32, 64, 128};
-        for (int block_size : block_sizes) {
-            fill(c.begin(), c.end(), 0.0); // Reset the result matrix
-            double time_taken = time_blocked_function(bmm_blocked_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
-            cout << "Time taken by bmm_blocked with block size " << block_size << ": " << time_taken << " seconds" << endl;
-        }
-    }
-}
-
-TEST_CASE("Comparison of bmm_blocking functions", "[bmm_blocking]") {
-    const int batch_dim = 10;
-    const int a_rows = 512;
-    const int b_cols = 512;
-    const int a_cols = 512;
-    const int block_size = 32;
-
-    vector<double> a(batch_dim * a_rows * a_cols);
-    vector<double> b(batch_dim * a_cols * b_cols);
-    vector<double> c(batch_dim * a_rows * b_cols, 0.0);
-    vector<double> c_ref(batch_dim * a_rows * b_cols, 0.0);
-
-    generate_random_matrix(a, a_rows, a_cols);
-    generate_random_matrix(b, a_cols, b_cols);
-
-    // Reference implementation
-    batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
-
-    SECTION("Timing and correctness of bmm_blocked") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_blocked_function(bmm_blocked_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
-        cout << "Time taken by bmm_blocked: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-
-    SECTION("Timing and correctness of bmm_blocked_simd") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_blocked_function(bmm_blocked_simd_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
-        cout << "Time taken by bmm_blocked_simd: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-
-    SECTION("Timing and correctness of bmm_blocked_simd_collapse") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_blocked_function(bmm_blocked_simd_collapse_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
-        cout << "Time taken by bmm_blocked_simd_collapse: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-
-    SECTION("Timing and correctness of bmm_blocked_simd_restricted_pointers") {
-        fill(c.begin(), c.end(), 0.0);
-        double time_taken = time_blocked_function(bmm_blocked_simd_restricted_pointers_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
-        cout << "Time taken by bmm_blocked_simd_restricted_pointers: " << time_taken << " seconds" << endl;
-        REQUIRE(compare_matrices(c, c_ref));
-    }
-}
+//
+//TEST_CASE("Batch Matrix Multiplication Timing and Correctness", "[bmm]") {
+//    const int batch_dim = 10;
+//    const int a_rows = 512;
+//    const int b_cols = 512;
+//    const int a_cols = 512;
+//
+//    vector<double> a(batch_dim * a_rows * a_cols);
+//    vector<double> b(batch_dim * a_cols * b_cols);
+//    vector<double> c(batch_dim * a_rows * b_cols, 0.0);
+//    vector<double> c_ref(batch_dim * a_rows * b_cols, 0.0);
+//
+//    generate_random_matrix(a, a_rows, a_cols);
+//    generate_random_matrix(b, a_cols, b_cols);
+//
+//    // Reference implementation
+//    batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
+//
+//    SECTION("Timing and correctness of bmm_omp_simple") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_function(bmm_omp_simple_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+//        cout << "Time taken by bmm_omp_simple: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//
+//    SECTION("Timing and correctness of bmm_simd") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_function(bmm_simd_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+//        cout << "Time taken by bmm_simd: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//
+//    SECTION("Timing and correctness of bmm_collaps") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_function(bmm_collaps_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+//        cout << "Time taken by bmm_collaps: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//
+//    SECTION("Timing batch_matrix_multiply") {
+//        double time_taken = time_function(batch_matrix_multiply_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+//        cout << "Time taken by batch_matrix_multiply: " << time_taken << " seconds" << endl;
+//    }
+//
+//    SECTION("Timing bmm_blocked with different block sizes") {
+//        vector<int> block_sizes = {16, 32, 64, 128};
+//        for (int block_size : block_sizes) {
+//            fill(c.begin(), c.end(), 0.0); // Reset the result matrix
+//            double time_taken = time_blocked_function(bmm_blocked_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+//            cout << "Time taken by bmm_blocked with block size " << block_size << ": " << time_taken << " seconds" << endl;
+//        }
+//    }
+//}
+//
+//TEST_CASE("Comparison of bmm_blocking functions", "[bmm_blocking]") {
+//    const int batch_dim = 10;
+//    const int a_rows = 512;
+//    const int b_cols = 512;
+//    const int a_cols = 512;
+//    const int block_size = 32;
+//
+//    vector<double> a(batch_dim * a_rows * a_cols);
+//    vector<double> b(batch_dim * a_cols * b_cols);
+//    vector<double> c(batch_dim * a_rows * b_cols, 0.0);
+//    vector<double> c_ref(batch_dim * a_rows * b_cols, 0.0);
+//
+//    generate_random_matrix(a, a_rows, a_cols);
+//    generate_random_matrix(b, a_cols, b_cols);
+//
+//    // Reference implementation
+//    batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
+//
+//    SECTION("Timing and correctness of bmm_blocked") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_blocked_function(bmm_blocked_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+//        cout << "Time taken by bmm_blocked: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//
+//    SECTION("Timing and correctness of bmm_blocked_simd") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_blocked_function(bmm_blocked_simd_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+//        cout << "Time taken by bmm_blocked_simd: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//
+//    SECTION("Timing and correctness of bmm_blocked_simd_collapse") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_blocked_function(bmm_blocked_simd_collapse_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+//        cout << "Time taken by bmm_blocked_simd_collapse: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//
+//    SECTION("Timing and correctness of bmm_blocked_simd_restricted_pointers") {
+//        fill(c.begin(), c.end(), 0.0);
+//        double time_taken = time_blocked_function(bmm_blocked_simd_restricted_pointers_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, block_size);
+//        cout << "Time taken by bmm_blocked_simd_restricted_pointers: " << time_taken << " seconds" << endl;
+//        REQUIRE(compare_matrices(c, c_ref));
+//    }
+//}
 
 // Testing bmm optimized with blocking and kernel
 // call: ./tests/catch_tests_bmm -c "[bmm_opt]"

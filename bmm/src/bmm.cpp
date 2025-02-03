@@ -37,7 +37,7 @@ double *batch_matrix_multiply(const double *a, const double *b, double *c,
 // b_cols: number of columns in matrix B
 // a_cols: number of columns in matrix A and rows in matrix B
 
-// Later: Parallelization with OpenMP
+// Later: Parallelization with OpenMP (how exactly? (!) Kernel updates global variable c)
 // Second kernel without SIMD for other architectures
 // Optimization of block sizes and kernel sizes: hardcode and unroll loops. Now, variable sizes
 // Try restrict keyword for pointers
@@ -143,6 +143,7 @@ void bmm(const double *a, const double *b, double *c, const int bd, const int a_
     pack(a, b, a_aligned, b_aligned, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
 
     // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
+    #pragma omp parallel for // collapse(4) // TODO: update c right always???
     for (int d = 0; d < bd; ++d) {
         for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
             for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
@@ -225,3 +226,4 @@ int main() {
 
     return 0;
 }
+

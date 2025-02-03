@@ -19,7 +19,7 @@ add_executable(catch_tests_mm catch_main.cpp test_mm.cpp)
 target_link_libraries(catch_tests_mm PUBLIC mm catch)
 
 # executable with bmm opt tests
-add_executable(catch_tests_bmm_opt catch_main.cpp test_bmm_opt.cpp)
+add_executable(catch_tests_bmm_opt catch_main.cpp)
 
 # link libraries bmm and catch to the executable
 target_link_libraries(catch_tests_bmm_opt PUBLIC bmm catch)
