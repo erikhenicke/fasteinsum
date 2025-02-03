@@ -193,13 +193,6 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int a
 //    	    _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], result);
 //    	}
 //	}
-
-//    // Update c with the values in t
-//    for (int i = 0; i < h; ++i) {
-//        for (int j = 0; j < wl; ++j) {
-//            _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], t[i * wl + j]);
-//        }
-//    }
 }
 
 

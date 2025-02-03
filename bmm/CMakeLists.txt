@@ -3,11 +3,16 @@ project(lib-bmm)
 
 # set SOURCE variable to the list of source files
 set(SOURCE_FILES src/bmm.cpp src/bmm_blocking.cpp src/bmm_omp.cpp)
-set(HEADER_FILES include/bmm.h include/bmm_blocking.h include/bmm_omp.h)
+set(HEADER_FILES include/bmm.h include/bmm_blocking.h include/bmm_omp.h include/aligned_allocator.h)
 
 # Add the example library
 add_library(bmm SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(bmm PUBLIC include)
+
+add_executable(bmm_debug src/bmm.cpp)
+target_include_directories(bmm_debug PUBLIC include)
+target_link_libraries(bmm_debug PUBLIC bmm)
+
 
 #set(CMAKE_PREFIX_PATH "/home/erik/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11/")
 set(CMAKE_PREFIX_PATH "/home/sonja/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11")

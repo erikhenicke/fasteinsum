@@ -189,3 +189,55 @@ TEST_CASE("Comparison of bmm_blocking functions", "[bmm_blocking]") {
         REQUIRE(compare_matrices(c, c_ref));
     }
 }
+
+// Testing bmm optimized with blocking and kernel
+// call: ./tests/catch_tests_bmm -c "[bmm_opt]"
+// call: ./tests/catch_tests_bmm -c "Timing and correctness of bmm optimized"
+
+
+void bmm_wrapper(const double *a, const double *b, double *c,
+                 int batch_dim, int a_rows, int b_cols, int a_cols) {
+    int h = 6;
+    int w = 8;
+    int simd_length = 4;
+    int wl = w / simd_length;
+    int b1 = 32;
+    int b2_ = 64;
+    int b3_ = 128;
+    bmm(a, b, c, batch_dim, a_rows, b_cols, a_cols, h, w, simd_length, wl, b1, b2_, b3_);
+}
+
+TEST_CASE("Timing and correctness of bmm optimized", "[bmm_opt]") {
+    vector<tuple<int, int, int, int>> test_cases = {
+        {10, 512, 512, 512},
+        {5, 256, 256, 256},
+        {10, 256, 512, 256},
+        {15, 103, 90, 17},
+        {8, 607, 398, 250}
+    };
+
+    for (const auto& [batch_dim, a_rows, b_cols, a_cols] : test_cases) {
+        vector<double> a(batch_dim * a_rows * a_cols);
+        vector<double> b(batch_dim * a_cols * b_cols);
+        vector<double> c(batch_dim * a_rows * b_cols, 0.0);
+        vector<double> c_ref(batch_dim * a_rows * b_cols, 0.0);
+
+        generate_random_matrix(a, a_rows, a_cols);
+        generate_random_matrix(b, a_cols, b_cols);
+
+        // Reference implementation
+        batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
+
+        SECTION("Timing and correctness of bmm with batch_dim=" + to_string(batch_dim) +
+                ", a_rows=" + to_string(a_rows) + ", b_cols=" + to_string(b_cols) +
+                ", a_cols=" + to_string(a_cols)) {
+            fill(c.begin(), c.end(), 0.0);
+            double time_taken = time_function(bmm_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+            cout << "Time taken by bmm with batch_dim=" << batch_dim << ", a_rows=" << a_rows
+                 << ", b_cols=" << b_cols << ", a_cols=" << a_cols << ": " << time_taken << " seconds" << endl;
+            REQUIRE(compare_matrices(c, c_ref));
+        }
+    }
+}
+
+
