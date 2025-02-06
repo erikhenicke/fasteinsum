@@ -20,3 +20,9 @@ add_custom_target(einsum_bmm_test
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         DEPENDS py_bmm
 )
+
+add_custom_target(benchmark
+        COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PYTHONPATH} ${Python3_EXECUTABLE} benchmark.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS py_bmm
+)

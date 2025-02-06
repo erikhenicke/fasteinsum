@@ -16,14 +16,25 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 using namespace std;
 
-
-double *batch_matrix_multiply(const double *a, const double *b, double *c,
+double *bmm_naive(const double *a, const double *b, double *c,
     const int batch_dim, const int a_rows, const int b_cols, const int a_cols) {
+
+    std::fill(c, c + batch_dim * a_rows * b_cols, 0.0);
+
     for (int d = 0; d < batch_dim; ++d)
         for (int i = 0; i < a_rows; ++i)
-            for (int j = 0; j < b_cols; ++j)
-                for (int k = 0; k < a_cols; ++k)
-                    c[d*a_rows*b_cols + i*b_cols + j] += a[d*a_rows*a_cols + i*a_cols + k] * b[d*a_cols*b_cols + k*b_cols + j];
+            for (int k = 0; k < a_cols; ++k) {
+                for (int j = 0; j < b_cols; ++j) {
+                    // Initialization
+                    // c[d * a_rows * b_cols + i * b_cols + j] = (k != 0) * c[d * a_rows * b_cols + i * b_cols + j];
+                    // if (i == 0 && j == 0) {
+                    //     std::cout << "AA[" << i << "," << k << "] = " << a[d * a_rows * a_cols + i * a_cols + k] << std::endl;
+                    //     std::cout << "BB[" << k << "," << j << "] = " << b[d * a_cols * b_cols + j * b_cols + k] << std::endl;
+                    //     std::cout << "AA[" << i << "," << k << "] * BB[" << k << "," << j << "] = " << a[d * a_rows * a_cols + i * a_cols + k] * b[d * a_cols * b_cols + j * b_cols + k] << std::endl;
+                    // }
+                    c[(d * a_rows + i) * b_cols + j] += a[(d * a_rows + i) * a_cols + k] * b[(d * a_cols + k) * b_cols + j];
+                }
+            }
     return c;
 }
 
@@ -54,9 +65,9 @@ void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, a
     for (int d = 0; d < bd; ++d) {
         for (int i = 0; i < a_rows_padded; ++i) {
             if (i < a_rows) {
-                std::memcpy(&a_aligned[d * a_rows_padded * a_cols + i * a_cols], &a[d * a_rows * a_cols + i * a_cols], a_cols * sizeof(double));
+                std::memcpy(&a_aligned[(d * a_rows_padded + i) * a_cols], &a[(d * a_rows + i) * a_cols], a_cols * sizeof(double));
             } else {
-                std::fill(&a_aligned[d * a_rows_padded * a_cols + i * a_cols], &a_aligned[d * a_rows_padded * a_cols + (i + 1) * a_cols], 0.0);
+                std::fill(&a_aligned[(d * a_rows_padded + i) * a_cols], &a_aligned[(d * a_rows_padded + (i + 1)) * a_cols], 0.0);
             }
         }
     }
@@ -65,10 +76,10 @@ void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, a
     for (int d = 0; d < bd; ++d) {
         for (int i = 0; i < a_cols; ++i) {
             if (i < a_cols) {
-                std::memcpy(&b_aligned[d * a_cols * b_cols_padded + i * b_cols_padded], &b[d * a_cols * b_cols + i * b_cols], b_cols * sizeof(double));
-                std::fill(&b_aligned[d * a_cols * b_cols_padded + i * b_cols_padded + b_cols], &b_aligned[d * a_cols * b_cols_padded + (i + 1) * b_cols_padded], 0.0);
+                std::memcpy(&b_aligned[(d * a_cols + i) * b_cols_padded], &b[(d * a_cols + i) * b_cols], b_cols * sizeof(double));
+                std::fill(&b_aligned[(d * a_cols + i) * b_cols_padded + b_cols], &b_aligned[(d * a_cols + (i + 1)) * b_cols_padded], 0.0);
             } else {
-                std::fill(&b_aligned[d * a_cols * b_cols_padded + i * b_cols_padded], &b_aligned[d * a_cols * b_cols_padded + (i + 1) * b_cols_padded], 0.0);
+                std::fill(&b_aligned[(d * a_cols + i) * b_cols_padded], &b_aligned[(d * a_cols + (i + 1)) * b_cols_padded], 0.0);
             }
         }
     }
@@ -91,16 +102,24 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int d
         t[i] = zero;
     }
 
+    int offsetA = (d * a_rows + a_idx) * a_cols + l;
+    int offsetB = d * a_cols * b_cols + b_idx + l * b_cols;
     for (int k = l; k < r; k++) {
         for (int j = 0; j < wl; j++) {
+//            cout << "k: " << k << " j: " << j << endl;
             __m256d b0 = _mm256_load_pd(&b_aligned[d * a_cols * b_cols + k * b_cols + b_idx + j * simd_length]);
+//            cout << "b0: " << b0[0] << " " << b0[1] << " " << b0[2] << " " << b0[3] << endl;
             for (int i = 0; i < h; i++) {
+//                cout << "i: " << i << endl;
                 __m256d a0 = _mm256_broadcast_sd(&a_aligned[d * a_rows * a_cols + (a_idx + i) * a_cols + k]);
+//                cout << "a0: " << a0[0] << " " << a0[1] << " " << a0[2] << " " << a0[3] << endl;
                 t[i * wl + j] = _mm256_fmadd_pd(a0, b0, t[i * wl + j]);
+//                cout << "t[" << i * wl + j << "]: " << t[i * wl + j][0] << " " << t[i * wl + j][1] << " " << t[i * wl + j][2] << " " << t[i * wl + j][3] << endl;
             }
         }
     }
 
+    int offsetC = (d * a_rows + a_idx) * b_cols + b_idx;
     // Update c with the values in t
     for (int i = 0; i < h; ++i) {
         for (int j = 0; j < wl; ++j) {
@@ -109,6 +128,20 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int d
             }
         }
     }
+
+    // int offsetC = (d * a_rows + a_idx) * b_cols + b_idx;
+    // // Update c with the values in t
+    // for (int i = 0; i < h; ++i) {
+    //     for (int j = 0; j < wl; ++j) {
+    //         for (int k = 0; k < simd_length; ++k) {
+    //             c_aligned[offsetC + k] += t[i * wl + j][k];
+    //         }
+    //         offsetC += simd_length;
+    //     }
+    //     offsetC -= wl * simd_length;
+    //     offsetC += b_cols;
+    // }
+
 
     //    // Update c with the values in t, c += t
     //	for (int i = 0; i < h; ++i) {
@@ -155,8 +188,10 @@ void bmm(const double *a, const double *b, double *c, const int bd, const int a_
 
     // Copy data from aligned memory to original matrix C, removing padding
     for (int d = 0; d < bd; ++d) {
+        int offsetC = d * a_rows * b_cols;
+        int offsetCAligned = d * a_rows_padded * b_cols_padded;
         for (int i = 0; i < a_rows; ++i) {
-            std::memcpy(&c[d * a_rows * b_cols + i * b_cols], &c_aligned[d * a_rows_padded * b_cols_padded + i * b_cols_padded], b_cols * sizeof(double));
+            std::memcpy(&c[offsetC + i * b_cols], &c_aligned[offsetCAligned + i * b_cols_padded], b_cols * sizeof(double));
         }
     }
 }
@@ -197,25 +232,29 @@ int main() {
 
     cout << "Starting bmm" << endl;
 
+    for (int i = 0; i < 100; ++i) {
+        bmm(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols, h, w, simd_length, wl, b1, b2_, b3_);
+    }
     // Call bmm
-    bmm(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols, h, w, simd_length, wl, b1, b2_, b3_);
 
     cout << "Finished bmm" << endl;
 
     // Compare this with the reference implementation
-    aligned_vector<double> c_ref(bd * a_rows * b_cols, 0.0);
-    batch_matrix_multiply(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
+    // aligned_vector<double> c_ref(bd * a_rows * b_cols, 0.0);
+    // for (int d = 0; d < bd; ++d) {
+    //     bmm_naive(&a[d * a_rows * a_cols], &b[d * a_cols * b_cols], &c_ref[d * a_rows * b_cols], 1, a_rows, b_cols, a_cols);
+    // }
 
-    // Check if the results are correct
-    bool equal = true;
-    for (int i = 0; i < bd * a_rows * b_cols; ++i) {
-        if (abs(c[i] - c_ref[i]) > 1e-6) {
-            equal = false;
-            break;
-        }
-    }
+    // // Check if the results are correct
+    // bool equal = true;
+    // for (int i = 0; i < bd * a_rows * b_cols; ++i) {
+    //     if (abs(c[i] - c_ref[i]) > 1e-6) {
+    //         equal = false;
+    //         break;
+    //     }
+    // }
 
-    cout << "Result of bmm is " << (equal ? "correct" : "incorrect") << endl;
+    // cout << "Result of bmm is " << (equal ? "correct" : "incorrect") << endl;
 
     return 0;
 }

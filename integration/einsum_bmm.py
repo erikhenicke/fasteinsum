@@ -6,11 +6,12 @@ import functools
 import itertools
 
 import autoray as ar
+import numpy as np
 
 import py_bmm
 
 
-@functools.lru_cache(2**12)
+@functools.lru_cache(2 ** 12)
 def _sanitize_equation(eq):
     """Get the input and output indices of an equation, computing the output
     implicitly as the sorted sequence of every index that appears exactly once
@@ -37,7 +38,7 @@ def _sanitize_equation(eq):
     return lhs, out
 
 
-@functools.lru_cache(2**12)
+@functools.lru_cache(2 ** 12)
 def _parse_einsum_single(eq, shape):
     """Cached parsing of a single term einsum equation into the necessary
     sequence of arguments for axes diagonals, sums, and transposes.
@@ -135,7 +136,7 @@ def _parse_pure_multiplication(a_term, b_term, out, sizes):
     )
 
 
-@functools.lru_cache(2**12)
+@functools.lru_cache(2 ** 12)
 def parse_double_eq(eq, shape_a, shape_b):
     """Cached parsing of a two term einsum equation into the necessary
     sequence of arguments for contracttion via batched matrix multiplication.
@@ -309,12 +310,14 @@ def _do_contraction_via_bmm(
         new_shape_ab,
         perm_ab,
         pure_multiplication,
+        useNaive,
         backend,
 ):
     # prepare left
     if eq_a is not None:
         # diagonals, sums, and tranpose
         a = _einsum_single(eq_a, a)
+
     if new_shape_a is not None:
         a = ar.do("reshape", a, new_shape_a, like=backend)
 
@@ -329,11 +332,22 @@ def _do_contraction_via_bmm(
         # no contracted indices
         return ar.do("multiply", a, b)
 
-    # do the contraction!
-    # change this one line, use very efficient batched matrix multiplication here from c+++ library
-    # print("shapes of a and b:", ar.shape(a), ar.shape(b))
-    # ab = ar.do("matmul", a, b, like=backend)
-    ab = py_bmm.bmm(a, b)
+    # Former reshape operations might result in a Fortran memory layout, which is not supported by the bmm function.
+    # Copying the array to a C-contiguous memory layout solves this issue.
+    if not a.flags['C_CONTIGUOUS']:
+        # old_strides = a.strides
+        a = ar.do("copy", a, order='C', like=backend)
+        # print(f"Make a contiguous: {old_strides} -> {a.strides}")
+    if not b.flags['C_CONTIGUOUS']:
+        # old_strides = b.strides
+        b = ar.do("copy", b, order='C', like=backend)
+        # print(f"Make b contiguous: {old_strides} -> {b.strides}")
+
+    # Alternatively we can use: np.ascontiguousarray(a)
+    if useNaive:
+        ab = py_bmm.bmm_naive(a, b)
+    else:
+        ab = py_bmm.bmm(a, b)
 
     # prepare the output
     if new_shape_ab is not None:
@@ -344,7 +358,7 @@ def _do_contraction_via_bmm(
     return ab
 
 
-def einsum(eq, a, b=None, *, backend=None):
+def einsum(eq, a, b=None, *, useNaive=False, backend=None):
     """Perform arbitrary single and pairwise einsums using only `matmul`,
     `transpose`, `reshape` and `sum`.  The logic for each is cached based on
     the equation and array shape, and each step is only performed if necessary.
@@ -388,6 +402,7 @@ def einsum(eq, a, b=None, *, backend=None):
         new_shape_ab,
         perm_ab,
         pure_multiplication,
+        useNaive,
         backend,
     )
 
@@ -402,7 +417,7 @@ def gen_nice_inds():
         yield chr(i)
 
 
-@functools.lru_cache(2**12)
+@functools.lru_cache(2 ** 12)
 def parse_tensordot_axes(axes, shape_a, shape_b):
     """Parse a tensordot specification into the necessary sequence of arguments
     for contracttion via matrix multiplication. This just converts ``axes``
@@ -499,9 +514,9 @@ def tensordot(a, b, axes=2, *, backend=None):
         new_shape_ab,
         perm_ab,
         pure_multiplication,
+        False,
         backend,
     )
-
 
 # # enable in opt_einsum:
 # import opt_einsum as oe

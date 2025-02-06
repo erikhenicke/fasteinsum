@@ -41,9 +41,9 @@ double time_blocked_function(void (*func)(const double*, const double*, double*,
     return elapsed.count();
 }
 
-void batch_matrix_multiply_wrapper(const double *a, const double *b, double *c,
+void bmm_naive_wrapper(const double *a, const double *b, double *c,
                                    int batch_dim, int a_rows, int b_cols, int a_cols) {
-    batch_matrix_multiply(a, b, c, batch_dim, a_rows, b_cols, a_cols);
+    bmm_naive(a, b, c, batch_dim, a_rows, b_cols, a_cols);
 }
 
 void bmm_blocked_wrapper(const double *a, const double *b, double *c,
@@ -226,7 +226,7 @@ TEST_CASE("Timing and correctness of bmm optimized", "[bmm_opt]") {
         generate_random_matrix(b, a_cols, b_cols);
 
         // Reference implementation
-        batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
+        bmm_naive(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
 
         SECTION("Timing and correctness of bmm with batch_dim=" + to_string(batch_dim) +
                 ", a_rows=" + to_string(a_rows) + ", b_cols=" + to_string(b_cols) +
