@@ -52,7 +52,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(4);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 1, 2, 2, 2);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 1, 2, 2, 2);
 
         REQUIRE(unflatten(result, 2, 2) == expected);
     }
@@ -66,7 +66,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(9);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 1, 3, 3, 3);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 1, 3, 3, 3);
 
         REQUIRE(unflatten(result, 3, 3) == expected);
     }
@@ -80,7 +80,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(9);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 1, 3, 3, 3);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 1, 3, 3, 3);
 
         REQUIRE(unflatten(result, 3, 3) == expected);
     }
@@ -94,7 +94,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(9);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 1, 3, 3, 3);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 1, 3, 3, 3);
 
         REQUIRE(unflatten(result, 3, 3) == expected);
     }
@@ -117,7 +117,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(8);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 2, 2, 2, 2);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 2, 2, 2, 2);
 
         REQUIRE(unflatten(result, 2, 2, 2) == expected);
     }
@@ -143,7 +143,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(27);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 3, 3, 3, 3);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 3, 3, 3, 3);
 
         REQUIRE(unflatten(result, 3, 3, 3) == expected);
     }
@@ -163,7 +163,7 @@ TEST_CASE("bmm function - easy cases", "[bmm]") {
         auto flat_B = flatten(B);
         std::vector<double> result(18);
 
-        batch_matrix_multiply(flat_A.data(), flat_B.data(), result.data(), 2, 3, 3, 3);
+        bmm_naive(flat_A.data(), flat_B.data(), result.data(), 2, 3, 3, 3);
 
         REQUIRE(unflatten(result, 2, 3, 3) == expected);
     }
