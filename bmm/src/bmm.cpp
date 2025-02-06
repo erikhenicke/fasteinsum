@@ -93,15 +93,10 @@ void kernel(double *a_aligned, double *b_aligned, double *c_aligned, const int d
 
     for (int k = l; k < r; k++) {
         for (int j = 0; j < wl; j++) {
-//            cout << "k: " << k << " j: " << j << endl;
             __m256d b0 = _mm256_load_pd(&b_aligned[d * a_cols * b_cols + k * b_cols + b_idx + j * simd_length]);
-//            cout << "b0: " << b0[0] << " " << b0[1] << " " << b0[2] << " " << b0[3] << endl;
             for (int i = 0; i < h; i++) {
-//                cout << "i: " << i << endl;
                 __m256d a0 = _mm256_broadcast_sd(&a_aligned[d * a_rows * a_cols + (a_idx + i) * a_cols + k]);
-//                cout << "a0: " << a0[0] << " " << a0[1] << " " << a0[2] << " " << a0[3] << endl;
                 t[i * wl + j] = _mm256_fmadd_pd(a0, b0, t[i * wl + j]);
-//                cout << "t[" << i * wl + j << "]: " << t[i * wl + j][0] << " " << t[i * wl + j][1] << " " << t[i * wl + j][2] << " " << t[i * wl + j][3] << endl;
             }
         }
     }
@@ -209,9 +204,7 @@ int main() {
 
     // Compare this with the reference implementation
     aligned_vector<double> c_ref(bd * a_rows * b_cols, 0.0);
-    for (int d = 0; d < bd; ++d) {
-        batch_matrix_multiply(&a[d * a_rows * a_cols], &b[d * a_cols * b_cols], &c_ref[d * a_rows * b_cols], 1, a_rows, b_cols, a_cols);
-    }
+    batch_matrix_multiply(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
 
     // Check if the results are correct
     bool equal = true;

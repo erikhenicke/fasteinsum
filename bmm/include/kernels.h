@@ -5,8 +5,8 @@
 #ifndef KERNELS_H
 #define KERNELS_H
 
-void kernel_var(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
-             int a_idx, int b_idx, int l, int r, int h = 6, int w = 8, int simd_length = 4, int wl = 2);
+void bmm(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
+         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
 
 //void kernel_omp(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
 //             int a_idx, int b_idx, int l, int r, int h, int w, int simd_length, int wl);
@@ -19,6 +19,9 @@ void kernel_var(double *a_aligned, double *b_aligned, double *c_aligned, const i
 // h = 4, 6, 8, (maybe later 10, 12, 16, ...)
 // simd_length = 4
 // wl = w / simd_length
+
+void kernel_2x24(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+             int a_idx, int b_idx, int l, int r);
 
 void kernel_4x4(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
              int a_idx, int b_idx, int l, int r);

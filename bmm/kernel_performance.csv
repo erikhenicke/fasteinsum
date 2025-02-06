@@ -1,0 +1,17 @@
+Kernel,Time,Correctness
+kernel_2x24,0.323351,correct
+kernel_4x4,0.329665,correct
+kernel_4x8,0.272982,correct
+kernel_4x12,0.258454,correct
+kernel_4x16,0.284711,correct
+kernel_4x20,0.337973,correct
+kernel_6x4,0.292305,correct
+kernel_6x8,0.270875,correct
+kernel_6x12,0.275145,correct
+kernel_6x16,0.34544,correct
+kernel_6x20,0.350946,correct
+kernel_8x4,0.300899,correct
+kernel_8x8,0.306886,correct
+kernel_8x12,0.362586,correct
+kernel_8x16,0.393728,correct
+kernel_8x20,0.397063,correct
