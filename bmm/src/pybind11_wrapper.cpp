@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <bmm.h>
 #include <iostream>
+#include <kernels.h>
 #include <pybind11/numpy.h>
 
 
@@ -11,8 +12,8 @@ py::array_t<double> bmm_wrapper(py::array_t<double> A, py::array_t<double> B) {
 
     std::cout << "Bmm fast" << std::endl;
 
-    int h = 6;
-    int w = 8;
+    int h = 8;
+    int w = 16;
     int simd_length = 4;
     int wl = w / simd_length;
     int b1 = 32;
@@ -33,7 +34,7 @@ py::array_t<double> bmm_wrapper(py::array_t<double> A, py::array_t<double> B) {
 
         int bA = A_buf.shape[0], rA = A_buf.shape[1], cA = A_buf.shape[2], cB = B_buf.shape[2];
 
-        bmm(ptr_A, ptr_B, ptr_res, bA, rA, cB, cA, h, w, simd_length, wl, b1, b2_, b3_);
+        bmm(ptr_A, ptr_B, ptr_res, bA, rA, cB, cA, h, w, simd_length, wl, b1, b2_, b3_, kernel_8x16);
 
         return result;
         }
@@ -52,7 +53,7 @@ py::array_t<double> bmm_wrapper(py::array_t<double> A, py::array_t<double> B) {
         int rA = A_buf.shape[0], cA = A_buf.shape[1], cB = B_buf.shape[1];
 
         // Batch dimension is 1
-        bmm(ptr_A, ptr_B, ptr_res, 1, rA, cB, cA, h, w, simd_length, wl, b1, b2_, b3_);
+        bmm(ptr_A, ptr_B, ptr_res, 1, rA, cB, cA, h, w, simd_length, wl, b1, b2_, b3_, kernel_8x16);
 
         return result;
     }

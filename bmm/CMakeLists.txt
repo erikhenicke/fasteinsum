@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(lib-bmm)
 
 # set SOURCE variable to the list of source files
-set(SOURCE_FILES src/bmm.cpp src/bmm_blocking.cpp src/bmm_omp.cpp)
+set(SOURCE_FILES src/bmm.cpp src/bmm_blocking.cpp src/bmm_omp.cpp src/kernels.cpp)
 set(HEADER_FILES include/bmm.h include/bmm_blocking.h include/bmm_omp.h include/aligned_allocator.h include/kernels.h)
 
 # Add the example library

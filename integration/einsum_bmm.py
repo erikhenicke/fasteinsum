@@ -343,6 +343,8 @@ def _do_contraction_via_bmm(
         b = ar.do("copy", b, order='C', like=backend)
         # print(f"Make b contiguous: {old_strides} -> {b.strides}")
 
+    print(f"Matrix shapes a: {a.shape}, b: {b.shape}")
+
     # Alternatively we can use: np.ascontiguousarray(a)
     if useNaive:
         ab = py_bmm.bmm_naive(a, b)

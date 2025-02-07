@@ -61,7 +61,8 @@ if __name__ == '__main__':
 
     # Run benchmark tests
     for i, (eq, *operands) in enumerate(test_cases):
-        print(f"Running test {i + 1}/{len(test_cases)}: {eq}")
+        print(f"Test {i + 1}/{len(test_cases)}: {eq}")
+        print(f"Initial shapes a: {operands[0].shape}, b: {operands[1].shape}")
         einsum_strings.append(eq)
         # res = np.einsum(eq, *operands)
         res = None
@@ -81,10 +82,10 @@ if __name__ == '__main__':
     rects2 = ax.bar(x + width/2, bmm_einsum_slow_times, width, label='einsum_bmm (naive)')
 
     ax.set_ylabel('Execution Time (seconds)')
-    ax.set_title('Benchmark: einsum_bmm vs naive implementation')
+    ax.set_title('Benchmark: Kernel vs Naive Implementation')
     ax.set_xticks(x)
     ax.set_xticklabels(einsum_strings, rotation=45, ha='right')
     ax.legend()
 
     plt.tight_layout()
-    plt.savefig("benchmark_results3.png", dpi=300, bbox_inches="tight")
+    plt.savefig("benchmark_results.png", dpi=300, bbox_inches="tight")

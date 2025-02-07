@@ -47,7 +47,7 @@ void measure_kernel_performance(const char* kernel_name,
     generate_random_matrix(a, a_rows, a_cols);
     generate_random_matrix(b, a_cols, b_cols);
 
-    batch_matrix_multiply(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
+    bmm_naive(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
 
     double total_time = 0.0;
     bool correct = true;
@@ -72,6 +72,37 @@ void measure_kernel_performance(const char* kernel_name,
 
     double avg_time = total_time / num_repeats;
     csv_file << kernel_name << "," << avg_time << "," << (correct ? "correct" : "incorrect") << endl;
+}
+
+void measure_naive_performance(int num_repeats, ofstream &csv_file) {
+    const int bd = 1;
+    const int a_rows = 1024;
+    const int b_cols = 1024;
+    const int a_cols = 1024;
+
+    aligned_vector<double> a(bd * a_rows * a_cols);
+    aligned_vector<double> b(bd * a_cols * b_cols);
+    aligned_vector<double> c(bd * a_rows * b_cols, 0.0);
+
+    generate_random_matrix(a, a_rows, a_cols);
+    generate_random_matrix(b, a_cols, b_cols);
+
+    double total_time = 0.0;
+
+    for (int i = 0; i < num_repeats; ++i) {
+        fill(c.begin(), c.end(), 0.0);
+
+        auto start = high_resolution_clock::now();
+        bmm_naive(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols);
+        auto end = high_resolution_clock::now();
+
+        duration<double> elapsed = end - start;
+        total_time += elapsed.count();
+
+    }
+
+    double avg_time = total_time / num_repeats;
+    csv_file << "Naive impelementation" << "," << avg_time << endl;
 }
 
 int main() {
@@ -113,6 +144,8 @@ int main() {
     measure_kernel_performance("kernel_8x16", kernel_8x16, num_repeats, 8, 16, csv_file);
     cout << "8x20" << endl;
     measure_kernel_performance("kernel_8x20", kernel_8x20, num_repeats, 8, 20, csv_file);
+    cout << "Naive implementation" << endl;
+    measure_naive_performance(num_repeats, csv_file);
 
     csv_file.close();
 
