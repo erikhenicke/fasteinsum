@@ -376,6 +376,34 @@ void bmm2(const double *a, const double *b, double *c, const int bd, const int a
 }
 
 
+// bmm with blocking, OMP SIMD parallel directive (should work on every architecture, no AVX intrinsics)
+void bmm3(const double *a, const double *b, double *c,
+    const int batch_dim, const int a_rows, const int b_cols, const int a_cols, const int b1, const int b2, const int b3) {
+    // fill c with 0
+    std::fill(c, c + batch_dim * a_rows * b_cols, 0.0);
+    // TODO: Transpose b?
+
+    #pragma omp parallel for simd collapse(4)
+//#pragma omp parallel for shared(matrixA, matrixB, matrixC) schedule(static) num_threads(THREADS)
+    for (int d = 0; d < batch_dim; ++d) {
+        for (int i = 0; i < b_cols; i += b3) {
+            for (int j = 0; j < a_rows; j += b2) {
+                for (int k = 0; k < a_cols; k += b1) {
+                    // Compute block sub-matrix multiplication
+                    for (int ii = i; ii < std::min(i + b3, b_cols); ++ii) {
+                        for (int jj = j; jj < std::min(j + b2, a_rows); ++jj) {
+                            for (int kk = k; kk < std::min(k + b1, a_cols); ++kk) {
+                                c[d*a_rows*b_cols + jj*b_cols + ii] += a[d*a_rows*a_cols + jj*a_cols + kk] * b[d*a_cols*b_cols + kk*b_cols + ii];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 
 void generate_random_matrix(aligned_vector<double> &matrix, int rows, int cols) {
     std::random_device rd;
@@ -395,7 +423,7 @@ int main() {
     // Define matrix dimensions
     const int bd = 4;
     const int a_rows = 256;
-    const int b_cols = 256;
+    const int b_cols = 512;
     const int a_cols = 256;
     const int h = 6;
     const int w = 8;
@@ -461,6 +489,28 @@ int main() {
      }
 
      cout << "Result of bmm2 is " << (equal ? "correct" : "incorrect") << endl;
+
+
+    cout << "Starting bmm3" << endl;
+
+    for (int i = 0; i < 1; ++i) {
+        bmm3(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols, b1, b2_, b3_);
+    }
+
+    cout << "Finished bmm3" << endl;
+
+    //     Compare this with the reference implementation
+
+        // Check if the results are correct
+        equal = true;
+        for (int i = 0; i < bd * a_rows * b_cols; ++i) {
+            if (abs(c[i] - c_ref[i]) > 1e-6) {
+                equal = false;
+                break;
+            }
+        }
+
+        cout << "Result of bmm3 is " << (equal ? "correct" : "incorrect") << endl;
 
     return 0;
 }

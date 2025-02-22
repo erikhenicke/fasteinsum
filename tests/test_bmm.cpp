@@ -89,7 +89,7 @@ bool compare_matrices(const vector<double> &a, const vector<double> &b) {
     }
     return true;
 }
-//
+
 //TEST_CASE("Batch Matrix Multiplication Timing and Correctness", "[bmm]") {
 //    const int batch_dim = 10;
 //    const int a_rows = 512;
@@ -105,7 +105,7 @@ bool compare_matrices(const vector<double> &a, const vector<double> &b) {
 //    generate_random_matrix(b, a_cols, b_cols);
 //
 //    // Reference implementation
-//    batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
+//    bmm_naive_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
 //
 //    SECTION("Timing and correctness of bmm_omp_simple") {
 //        fill(c.begin(), c.end(), 0.0);
@@ -128,8 +128,8 @@ bool compare_matrices(const vector<double> &a, const vector<double> &b) {
 //        REQUIRE(compare_matrices(c, c_ref));
 //    }
 //
-//    SECTION("Timing batch_matrix_multiply") {
-//        double time_taken = time_function(batch_matrix_multiply_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+//    SECTION("Timing bmm_naive") {
+//        double time_taken = time_function(bmm_naive_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
 //        cout << "Time taken by batch_matrix_multiply: " << time_taken << " seconds" << endl;
 //    }
 //
@@ -159,7 +159,7 @@ bool compare_matrices(const vector<double> &a, const vector<double> &b) {
 //    generate_random_matrix(b, a_cols, b_cols);
 //
 //    // Reference implementation
-//    batch_matrix_multiply_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
+//    bmm_naive_wrapper(a.data(), b.data(), c_ref.data(), batch_dim, a_rows, b_cols, a_cols);
 //
 //    SECTION("Timing and correctness of bmm_blocked") {
 //        fill(c.begin(), c.end(), 0.0);
@@ -205,8 +205,28 @@ void bmm_wrapper(const double *a, const double *b, double *c,
     int b2_ = 64;
     int b3_ = 128;
     bmm(a, b, c, batch_dim, a_rows, b_cols, a_cols, h, w, simd_length, wl, b1, b2_, b3_);
-//    bmm2(a, b, c, batch_dim, a_rows, b_cols, a_cols, h, w, b1, b2_, b3_);
 }
+
+void bmm2_wrapper(const double *a, const double *b, double *c,
+                 int batch_dim, int a_rows, int b_cols, int a_cols) {
+    int h = 6;
+    int w = 8;
+    int simd_length = 4;
+    int wl = w / simd_length;
+    int b1 = 32;
+    int b2_ = 64;
+    int b3_ = 128;
+    bmm2(a, b, c, batch_dim, a_rows, b_cols, a_cols, h, w, b1, b2_, b3_);
+}
+
+void bmm3_wrapper(const double *a, const double *b, double *c,
+                    int batch_dim, int a_rows, int b_cols, int a_cols) {
+    int b1 = 32;
+    int b2_ = 64;
+    int b3_ = 128;
+    bmm3(a, b, c, batch_dim, a_rows, b_cols, a_cols, b1, b2_, b3_);
+}
+
 
 TEST_CASE("Timing and correctness of bmm optimized", "[bmm_opt]") {
     vector<tuple<int, int, int, int>> test_cases = {
@@ -235,6 +255,26 @@ TEST_CASE("Timing and correctness of bmm optimized", "[bmm_opt]") {
             fill(c.begin(), c.end(), 0.0);
             double time_taken = time_function(bmm_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
             cout << "Time taken by bmm with batch_dim=" << batch_dim << ", a_rows=" << a_rows
+                 << ", b_cols=" << b_cols << ", a_cols=" << a_cols << ": " << time_taken << " seconds" << endl;
+            REQUIRE(compare_matrices(c, c_ref));
+        }
+
+        SECTION("Timing and correctness of bmm2 with batch_dim=" + to_string(batch_dim) +
+                ", a_rows=" + to_string(a_rows) + ", b_cols=" + to_string(b_cols) +
+                ", a_cols=" + to_string(a_cols)) {
+            fill(c.begin(), c.end(), 0.0);
+            double time_taken = time_function(bmm2_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+            cout << "Time taken by bmm2 with batch_dim=" << batch_dim << ", a_rows=" << a_rows
+                 << ", b_cols=" << b_cols << ", a_cols=" << a_cols << ": " << time_taken << " seconds" << endl;
+            REQUIRE(compare_matrices(c, c_ref));
+        }
+
+        SECTION("Timing and correctness of bmm3 with batch_dim=" + to_string(batch_dim) +
+                ", a_rows=" + to_string(a_rows) + ", b_cols=" + to_string(b_cols) +
+                ", a_cols=" + to_string(a_cols)) {
+            fill(c.begin(), c.end(), 0.0);
+            double time_taken = time_function(bmm3_wrapper, a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols);
+            cout << "Time taken by bmm3 with batch_dim=" << batch_dim << ", a_rows=" << a_rows
                  << ", b_cols=" << b_cols << ", a_cols=" << a_cols << ": " << time_taken << " seconds" << endl;
             REQUIRE(compare_matrices(c, c_ref));
         }
