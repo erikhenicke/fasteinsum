@@ -923,7 +923,7 @@ void kernel_8x20(double *a_aligned, double *b_aligned, double *c_aligned, const 
 //
 //    // Compare this with the reference implementation
 //    aligned_vector<double> c_ref(bd * a_rows * b_cols, 0.0);
-//    batch_matrix_multiply(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
+//    bmm_naive(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
 //
 //
 //    // Check if the results are correct

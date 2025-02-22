@@ -47,7 +47,7 @@ void measure_kernel_performance(const char* kernel_name,
     generate_random_matrix(a, a_rows, a_cols);
     generate_random_matrix(b, a_cols, b_cols);
 
-    batch_matrix_multiply(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
+    bmm_naive(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
 
     double total_time = 0.0;
     bool correct = true;
@@ -78,7 +78,7 @@ int main() {
     ofstream csv_file("kernel_performance.csv");
     csv_file << "Kernel,Time,Correctness" << endl;
 
-    const int num_repeats = 10;
+    const int num_repeats = 1;
 
     cout << "Measuring kernel performance..." << endl;
     cout << "2x24" << endl;

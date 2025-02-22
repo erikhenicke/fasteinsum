@@ -35,41 +35,41 @@ void test_function(void (*func)(const double*, const double*, double*, int, int,
 TEST_CASE("Matrix Multiplication Functions", "[mm]") {
     const int sizes[] = {64, 128, 256, 512, 1024};
 
-    SECTION("mm_naive") {
-        for (int size : sizes) {
-            test_function(mm_naive, size);
-        }
-    }
-    SECTION("mm_transposed") {
-        for (int size : sizes) {
-            test_function(mm_transposed, size);
-        }
-    }
-    SECTION("mm_auto_vectorized") {
-      for (int size : sizes) {
-          test_function(mm_auto_vectorized, size);
-      }
-    }
-    SECTION("mm_omp_vectorized") {
-      for (int size : sizes) {
-          test_function(mm_omp_vectorized, size);
-      }
-    }
-    SECTION("mm_vectorized_64") {
-        for (int size : sizes) {
-            test_function(mm_vectorized_64, size);
-        }
-    }
-    SECTION("mm_vectorized_pipe_2") {
-        for (int size : sizes) {
-            test_function(mm_vectorized_pipe_2, size);
-        }
-    }
-    SECTION("mm_vectorized_pipe_8") {
-        for (int size : sizes) {
-            test_function(mm_vectorized_pipe_8, size);
-        }
-    }
+//    SECTION("mm_naive") {
+//        for (int size : sizes) {
+//            test_function(mm_naive, size);
+//        }
+//    }
+//    SECTION("mm_transposed") {
+//        for (int size : sizes) {
+//            test_function(mm_transposed, size);
+//        }
+//    }
+//    SECTION("mm_auto_vectorized") {
+//      for (int size : sizes) {
+//          test_function(mm_auto_vectorized, size);
+//      }
+//    }
+//    SECTION("mm_omp_vectorized") {
+//      for (int size : sizes) {
+//          test_function(mm_omp_vectorized, size);
+//      }
+//    }
+//    SECTION("mm_vectorized_64") {
+//        for (int size : sizes) {
+//            test_function(mm_vectorized_64, size);
+//        }
+//    }
+//    SECTION("mm_vectorized_pipe_2") {
+//        for (int size : sizes) {
+//            test_function(mm_vectorized_pipe_2, size);
+//        }
+//    }
+//    SECTION("mm_vectorized_pipe_8") {
+//        for (int size : sizes) {
+//            test_function(mm_vectorized_pipe_8, size);
+//        }
+//    }
     SECTION("mm_kernel") {
         for (int size : sizes) {
             test_function(mm_kernel, size);

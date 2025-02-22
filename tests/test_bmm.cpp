@@ -205,6 +205,7 @@ void bmm_wrapper(const double *a, const double *b, double *c,
     int b2_ = 64;
     int b3_ = 128;
     bmm(a, b, c, batch_dim, a_rows, b_cols, a_cols, h, w, simd_length, wl, b1, b2_, b3_);
+//    bmm2(a, b, c, batch_dim, a_rows, b_cols, a_cols, h, w, b1, b2_, b3_);
 }
 
 TEST_CASE("Timing and correctness of bmm optimized", "[bmm_opt]") {
