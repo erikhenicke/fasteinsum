@@ -33,7 +33,10 @@ void bmm2(const double *a, const double *b, double *c, const int bd, const int a
 
 void kernel2(double *a_aligned, double *b_aligned, double *c, const int d, const int a_rows, const int b_cols, const int a_cols, int a_idx, int b_idx, int l, int r, int height, int width);
 
+
 void pack2(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned, aligned_vector<double> &c_aligned,
            const int bd, const int a_rows, const int a_cols, const int b_cols, const int a_rows_padded, const int b_cols_padded);
 
 void bmm3(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3);
+
+void bmm_blas(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols);

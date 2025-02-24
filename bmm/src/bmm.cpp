@@ -8,6 +8,7 @@
 //#include <chrono>
 //#include <fstream>
 #include <iostream>
+#include <cblas.h>
 
 
 // aligned_vector is a 64 byte aligned std::vector
@@ -404,6 +405,22 @@ void bmm3(const double *a, const double *b, double *c,
     }
 }
 
+void bmm_blas(const double *a, const double *b, double *c,
+    const int batch_dim, const int a_rows, const int b_cols, const int a_cols) {
+    // fill c with 0
+    std::fill(c, c + batch_dim * a_rows * b_cols, 0.0);
+
+    int sizeA = a_rows * a_cols;
+    int sizeB = a_cols * b_cols;
+    int sizeC = a_rows * b_cols;
+
+    // Perform matrix multiplication using BLAS
+    #pragma omp parallel for
+    for (int d = 0; d < batch_dim; ++d) {
+        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, a_rows, b_cols, a_cols, 1.0, &a[d * sizeA], a_cols, &b[d * sizeB], b_cols, 1.0, &c[d * sizeC], b_cols);
+    }
+}
+
 
 
 void generate_random_matrix(aligned_vector<double> &matrix, int rows, int cols) {
@@ -512,6 +529,27 @@ int main() {
         }
 
         cout << "Result of bmm3 is " << (equal ? "correct" : "incorrect") << endl;
+
+    cout << "Starting bmm_blas" << endl;
+
+    for (int i = 0; i < 1; ++i) {
+        bmm_blas(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols);
+    }
+
+    cout << "Finished bmm_blas" << endl;
+
+    //     Compare this with the reference implementation
+
+    // Check if the results are correct
+    equal = true;
+    for (int i = 0; i < bd * a_rows * b_cols; ++i) {
+        if (abs(c[i] - c_ref[i]) > 1e-6) {
+            equal = false;
+            break;
+        }
+    }
+
+    cout << "Result of bmm_blas is " << (equal ? "correct" : "incorrect") << endl;
 
     return 0;
 }
