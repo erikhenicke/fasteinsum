@@ -310,7 +310,7 @@ def _do_contraction_via_bmm(
         new_shape_ab,
         perm_ab,
         pure_multiplication,
-        useNaive,
+        fast,
         backend,
 ):
     # prepare left
@@ -346,8 +346,8 @@ def _do_contraction_via_bmm(
     print(f"Matrix shapes a: {a.shape}, b: {b.shape}")
 
     # Alternatively we can use: np.ascontiguousarray(a)
-    if useNaive:
-        ab = py_bmm.bmm_naive(a, b)
+    if fast:
+        ab = py_bmm.bmm_parallel(a, b)
     else:
         ab = py_bmm.bmm(a, b)
 
@@ -360,7 +360,7 @@ def _do_contraction_via_bmm(
     return ab
 
 
-def einsum(eq, a, b=None, *, useNaive=False, backend=None):
+def einsum(eq, a, b=None, *, fast=True, backend=None):
     """Perform arbitrary single and pairwise einsums using only `matmul`,
     `transpose`, `reshape` and `sum`.  The logic for each is cached based on
     the equation and array shape, and each step is only performed if necessary.
@@ -404,7 +404,7 @@ def einsum(eq, a, b=None, *, useNaive=False, backend=None):
         new_shape_ab,
         perm_ab,
         pure_multiplication,
-        useNaive,
+        fast,
         backend,
     )
 

@@ -16,17 +16,17 @@ test_cases = [
     # ('efbad,cf->abcde', np.random.rand(48, 36, 36, 48, 36), np.random.rand(24, 36)),
     # ('ecbfa,fd->abcde', np.random.rand(48, 36, 36, 48, 48), np.random.rand(48, 24)),
     # ('efcad,bf->abcde', np.random.rand(48, 36, 36, 48, 36), np.random.rand(24, 36)),
-    # ('ea,ebcd->abcd', np.random.rand(96, 96), np.random.rand(96, 84, 84, 84)),
-    # ('eb,aecd->abcd', np.random.rand(96, 84), np.random.rand(96, 96, 84, 84)),
-    # ('ec,abed->abcd', np.random.rand(96, 84), np.random.rand(96, 84, 96, 84)),
+    ('ea,ebcd->abcd', np.random.rand(96, 96), np.random.rand(96, 84, 84, 84)),
+    ('eb,aecd->abcd', np.random.rand(96, 84), np.random.rand(96, 96, 84, 84)),
+    ('ec,abed->abcd', np.random.rand(96, 84), np.random.rand(96, 84, 96, 84)),
     # ('acd,dbc->ab', np.random.rand(384, 376, 384), np.random.rand(384, 376, 376)),
     # ('cad,dcb->ab', np.random.rand(384, 384, 384), np.random.rand(384, 384, 376)),
     # ('acd,db->abc', np.random.rand(384, 376, 384), np.random.rand(384, 376)),
-    ('ad,bdc->abc', np.random.rand(384, 376), np.random.rand(384, 376, 376)),
-    ('adc,bd->abc', np.random.rand(384, 376, 376), np.random.rand(384, 376)),
-    ('adc,db->abc', np.random.rand(384, 384, 376), np.random.rand(384, 376)),
-    ('adec,ebd->abc', np.random.rand(96, 84, 96, 84), np.random.rand(96, 84, 84)),
-    ('aebf,dfce->abcd', np.random.rand(96, 84, 84, 84), np.random.rand(96, 84, 84, 84)),
+    # ('ad,bdc->abc', np.random.rand(384, 376), np.random.rand(384, 376, 376)),
+    # ('adc,bd->abc', np.random.rand(384, 376, 376), np.random.rand(384, 376)),
+    # ('adc,db->abc', np.random.rand(384, 384, 376), np.random.rand(384, 376)),
+    # ('adec,ebd->abc', np.random.rand(96, 84, 96, 84), np.random.rand(96, 84, 84)),
+    # ('aebf,dfce->abcd', np.random.rand(96, 84, 84, 84), np.random.rand(96, 84, 84, 84)),
     # ('ac,cb->ab', np.random.rand(7248, 7248), np.random.rand(7248, 7240)),
 ]
 
@@ -38,14 +38,14 @@ einsum_strings = []
 
 
 def einsum_fast(eq, *operands):
-    return einsum(eq, *operands, useNaive=False)
+    return einsum(eq, *operands, fast=True)
 
 
 def einsum_slow(eq, *operands):
-    return einsum(eq, *operands, useNaive=True)
+    return einsum(eq, *operands, fast=False)
 
 
-def benchmark(func, eq, *operands, expected_res=None, num_runs=10):
+def benchmark(func, eq, *operands, expected_res=None, num_runs=1):
     times = []
     for _ in range(num_runs):
         start = time.time()
@@ -64,8 +64,8 @@ if __name__ == '__main__':
         print(f"Test {i + 1}/{len(test_cases)}: {eq}")
         print(f"Initial shapes a: {operands[0].shape}, b: {operands[1].shape}")
         einsum_strings.append(eq)
-        # res = np.einsum(eq, *operands)
-        res = None
+        res = np.einsum(eq, *operands)
+        # res = None
         bmm_einsum_fast_times.append(benchmark(einsum_fast, eq, *operands, expected_res=res))
         bmm_einsum_slow_times.append(benchmark(einsum_slow, eq, *operands, expected_res=res))
         # numpy_einsum_times.append(benchmark(np.einsum, eq, *operands))
@@ -78,11 +78,11 @@ if __name__ == '__main__':
     # rects2 = ax.bar(x, bmm_einsum_slow_times, width, label='einsum_bmm (naive)')
     # rects3 = ax.bar(x + width, numpy_einsum_times, width, label='numpy.einsum')
 
-    rects1 = ax.bar(x - width/2, bmm_einsum_fast_times, width, label='einsum_bmm')
-    rects2 = ax.bar(x + width/2, bmm_einsum_slow_times, width, label='einsum_bmm (naive)')
+    rects1 = ax.bar(x - width/2, bmm_einsum_fast_times, width, label='einsum_bmm parallel')
+    rects2 = ax.bar(x + width/2, bmm_einsum_slow_times, width, label='einsum_bmm')
 
     ax.set_ylabel('Execution Time (seconds)')
-    ax.set_title('Benchmark: Kernel vs Naive Implementation')
+    ax.set_title('Benchmark: Kernel vs Parallel Kernel')
     ax.set_xticks(x)
     ax.set_xticklabels(einsum_strings, rotation=45, ha='right')
     ax.legend()

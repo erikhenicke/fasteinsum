@@ -3,6 +3,8 @@
 import numpy as np
 from einsum_bmm import einsum
 
+np.random.seed(0)
+
 # Example 1: Matrix multiplication
 a = np.random.rand(2, 3)
 b = np.random.rand(3, 4)
