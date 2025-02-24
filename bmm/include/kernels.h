@@ -9,7 +9,7 @@ void bmm(const double *a, const double *b, double *c, const int bd, const int a_
          void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
 
 void bmm_parallel(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
+         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int));
 
 void bmm_parallel_more4(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
          void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
@@ -78,7 +78,7 @@ void kernel_8x12(double *a_aligned, double *b_aligned, double *c_aligned, const 
              int a_idx, int b_idx, int l, int r);
 
 void kernel_8x16(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
-             int a_idx, int b_idx, int l, int r);
+             int a_idx, int b_idx, int l, int r, int h, int w);
 
 void kernel_8x16_test(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
              int a_idx, int b_idx, int l, int r);

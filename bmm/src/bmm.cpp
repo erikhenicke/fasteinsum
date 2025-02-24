@@ -332,7 +332,8 @@ void kernel2(double *aligned_a, double *aligned_b, double *c, const int bd, cons
     }
 }
 
-void bmm2(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int b1_, int b2_, int b3_) {
+void bmm2(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1_, int b2_, int b3_,
+    void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int)) {
     // Pad a_rows and b_cols to be multiples of h and w
     int a_rows_padded = a_rows + (h - a_rows % h) % h;
     int b_cols_padded = b_cols + (w - b_cols % w) % w;
@@ -350,14 +351,14 @@ void bmm2(const double *a, const double *b, double *c, const int bd, const int a
     pack2(a, b, a_aligned, b_aligned_transposed, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, a_cols_padded, b_cols_padded);
 
     // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    #pragma omp parallel for // collapse(4) // TODO: update c right always???
+    #pragma omp parallel for collapse(3)
     for (int d = 0; d < bd; ++d) {
         for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
             for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
                 for (int i1 = 0; i1 < a_cols; i1 += b1) {
                     for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
                         for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
-                            kernel2(a_aligned.data(), b_aligned_transposed.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols_padded, k, j, i1, i1 + b1 , h, w); // std::min(i1 + b1, a_cols) not needed because a_cols_padded % 32 = 0
+                            kernel(a_aligned.data(), b_aligned_transposed.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols_padded, k, j, i1, i1 + b1, h, w); // std::min(i1 + b1, a_cols) not needed because a_cols_padded % 32 = 0
                         }
                     }
                 }
@@ -471,7 +472,7 @@ int main() {
     cout << "Starting bmm2" << endl;
 
     for (int i = 0; i < 1; ++i) {
-        bmm2(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols, h, w, b1, b2_, b3_);
+        bmm2(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols, h, w, 0, 0, b1, b2_, b3_, kernel2);
     }
     // Call bmm
 

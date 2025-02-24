@@ -23,11 +23,14 @@ using namespace std;
 
 constexpr int SIMD_LENGTH = 4;
 
-void delete_last_printed(const string& str) {
-    for (size_t i = 0; i < str.length(); ++i) {
-        cout << "\b \b";
-    }
-}
+struct KernelResult {
+    string name;
+    int h, w;
+    int batch_dim, a_rows, a_cols, b_cols;
+    int b1, b2, b3;
+    bool correct;
+    double time;
+};
 
 void generate_random_matrix(aligned_vector<double> &matrix, int rows, int cols) {
     random_device rd;
@@ -59,8 +62,8 @@ bool check_correctness(
     int b2_,
     int b3_,
     void (*bmm)(const double*, const double*, double*, const int, const int, const int, const int, int, int, int, int, int, int, int,
-         void(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)),
-    void(*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int))
+         void(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int)),
+    void(*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int))
 {
     const int wl = w / SIMD_LENGTH;
 
@@ -103,8 +106,8 @@ double measure_kernel_performance(
     int b2_,
     int b3_,
     void (*bmm)(const double*, const double*, double*, const int, const int, const int, const int, int, int, int, int, int, int, int,
-         void(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)),
-    void(*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int))
+         void(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int)),
+    void(*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int))
 {
     const int wl = w / SIMD_LENGTH;
 
@@ -171,64 +174,61 @@ double measure_kernel_performance(
 // }
 
 int main() {
-    const string fileName = "kernel_performance.csv";
-    ofstream csv_file(fileName);
-    csv_file << "Kernel,Time,Correctness" << endl;
-
-    unordered_map<string, int> hashTable;
-
-    const int num_repeats = 10;
-    const int num_repeats_shuffle = 20;
+    const int num_repeats = 5;
+    const int num_repeats_shuffle = 10;
 
     cout << "Measuring kernel performance..." << endl;
 
+    /* Contains:
+     * 1. Kernel name
+     * 2. Bmm function
+     * 3. Kernel function
+     * 4. h
+     * 5. w
+     */
     vector<
         tuple<
             string,
             void (*)(const double*, const double*, double*, const int, const int, const int, const int, int, int, int, int, int, int, int,
-             void(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)),
-            void(*)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int),
+             void(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int)),
+            void(*)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int),
             int,
-            int,
-            double,
-            bool>>
+            int>>
     kernels = {
-//         {"kernel_2x24", bmm_parallel, kernel_2x24, 2, 24, 0.0, false},
-//         {"kernel_4x4", bmm_parallel, kernel_4x4, 4, 4, 0.0, false},
-//         {"kernel_4x8", bmm_parallel, kernel_4x8, 4, 8, 0.0, false},
-//         {"kernel_4x12", bmm_parallel, kernel_4x12, 4, 12, 0.0, false},
-//         {"kernel_4x12_test1", bmm_parallel, kernel_4x12_test1, 4, 12, 0.0, false},
-//         {"kernel_4x12_test2", bmm_parallel, kernel_4x12_test2, 4, 12, 0.0, false},
-//         {"kernel_4x16", bmm_parallel, kernel_4x16, 4, 16, 0.0, false},
-//         {"kernel_4x20", bmm_parallel, kernel_4x20, 4, 20, 0.0, false},
-//         {"kernel_6x4", bmm_parallel, kernel_6x4, 6, 4, 0.0, false},
-//         {"kernel_6x8", bmm_parallel, kernel_6x8, 6, 8, 0.0, false},
-//         {"kernel_6x12", bmm_parallel, kernel_6x12, 6, 12, 0.0, false},
-//         {"kernel_6x16", bmm_parallel, kernel_6x16, 6, 16, 0.0, false},
-//         {"kernel_6x20", bmm_parallel, kernel_6x20, 6, 20, 0.0, false},
-//         {"kernel_8x4", bmm_parallel, kernel_8x4, 8, 4, 0.0, false},
-//         {"kernel_8x8", bmm_parallel, kernel_8x8, 8, 8, 0.0, false},
-//         {"kernel_8x12", bmm_parallel, kernel_8x12, 8, 12, 0.0, false},
-        {"kernel_8x16 parallel", bmm_parallel, kernel_8x16, 8, 16, 0.0, false},
-//         {"kernel_8x16 parallel 1", bmm_parallel_more1, kernel_8x16, 8, 16, 0.0, false},
-//         {"kernel_8x16 parallel 2", bmm_parallel_more2, kernel_8x16, 8, 16, 0.0, false},
-//         {"kernel_8x16 parallel 3", bmm_parallel_more3, kernel_8x16, 8, 16, 0.0, false},
-        {"kernel_8x16 parallel 4", bmm_parallel_more4, kernel_8x16, 8, 16, 0.0, false},
-        {"kernel_8x16 parallel 5", bmm_parallel_more5, kernel_8x16, 8, 16, 0.0, false},};
-//        {"kernel_8x16_test2", bmm_parallel, kernel_8x16_test2, 8, 16, 0.0, false},
-//         {"kernel_8x20", bmm_parallel, kernel_8x20, 8, 20, 0.0, false}};
+//         {"kernel_2x24", bmm_parallel, kernel_2x24, 2, 24},
+//         {"kernel_4x4", bmm_parallel, kernel_4x4, 4, 4},
+//         {"kernel_4x8", bmm_parallel, kernel_4x8, 4, 8},
+//         {"kernel_4x12", bmm_parallel, kernel_4x12, 4, 12},
+//         {"kernel_4x12_test1", bmm_parallel, kernel_4x12_test1, 4, 12},
+//         {"kernel_4x12_test2", bmm_parallel, kernel_4x12_test2, 4, 12},
+//         {"kernel_4x16", bmm_parallel, kernel_4x16, 4, 16},
+//         {"kernel_4x20", bmm_parallel, kernel_4x20, 4, 20},
+//         {"kernel_6x4", bmm_parallel, kernel_6x4, 6, 4},
+//         {"kernel_6x8", bmm_parallel, kernel_6x8, 6, 8},
+//         {"kernel_6x12", bmm_parallel, kernel_6x12, 6, 12},
+//         {"kernel_6x16", bmm_parallel, kernel_6x16, 6, 16},
+//         {"kernel_6x20", bmm_parallel, kernel_6x20, 6, 20},
+//         {"kernel_8x4", bmm_parallel, kernel_8x4, 8, 4},
+//         {"kernel_8x8", bmm_parallel, kernel_8x8, 8, 8},
+//         {"kernel_8x12", bmm_parallel, kernel_8x12, 8, 12},
+//         {"kernel_8x16 parallel", bmm_parallel, kernel_8x16, 8, 16},
+//         {"kernel_8x16 parallel 1", bmm_parallel_more1, kernel_8x16, 8, 16},
+//         {"kernel_8x16 parallel 2", bmm_parallel_more2, kernel_8x16, 8, 16},
+//         {"kernel_8x16 parallel 3", bmm_parallel_more3, kernel_8x16, 8, 16},
+//         {"kernel_8x16 parallel 4", bmm_parallel_more4, kernel_8x16, 8, 16},
+//         {"kernel_8x16 parallel 5", bmm_parallel_more5, kernel_8x16, 8, 16},
+//         {"kernel_8x16_test2", bmm_parallel, kernel_8x16_test2, 8, 16},
+//         {"kernel_8x20", bmm_parallel, kernel_8x20, 8, 20},
+        {"simple_kernel", bmm2, kernel2, 6, 8},
+        {"kernel_8x16", bmm_parallel, kernel_8x16, 8, 16}};
 
-    vector<tuple<const int, const int, const int, const int, const int, const int, const int>> sizes = {
-        {16, 2048, 512, 2048, 128, 512, 1024}};
+    vector<tuple<int, int, int, int, int, int, int>> sizes = {
+        {4, 512, 512, 512, 32, 64, 128},
+        {4, 512, 512, 512, 64, 256, 512}};
 
     const size_t num_configs = sizes.size() * kernels.size();
 
-    // Create a vector of kernel names to preserve the output order
-    vector<string> kernel_names;
-    for (const auto& kernel : kernels) {
-        const string name = get<0>(kernel);
-        kernel_names.push_back(name);
-    }
+    vector<KernelResult> results;
 
     cout << "Check correctness: " << endl;
     for (const auto& size : sizes) {
@@ -245,8 +245,20 @@ int main() {
                 get<6>(size),
                 get<1>(kernel),
                 get<2>(kernel));
-            get<6>(kernel) = isCorrect;
             cout << "\tKernel: " << get<0>(kernel) << " " << (isCorrect ? "correct" : "incorrect") << endl;
+            results.push_back({
+                    get<0>(kernel),
+                    get<3>(kernel),
+                    get<4>(kernel),
+                    get<0>(size),
+                    get<1>(size),
+                    get<2>(size),
+                    get<3>(size),
+                    get<4>(size),
+                    get<5>(size),
+                    get<6>(size),
+                    isCorrect,
+                    0.0});
         }
     }
 
@@ -260,12 +272,13 @@ int main() {
 
         // Randomize the order of execution
         shuffle(kernels.begin(), kernels.end(), g);
+        shuffle(sizes.begin(), sizes.end(), g);
 
         for (const auto& size : sizes) {
             for (auto& kernel : kernels) {
                 cout << "\tKernel: " << get<0>(kernel) << " (" << curr_it + 1 << "/" << num_configs << ")" << endl;
 
-                get<5>(kernel) += measure_kernel_performance(
+                double time = measure_kernel_performance(
                     num_repeats,
                     get<3>(kernel),
                     get<4>(kernel),
@@ -279,19 +292,45 @@ int main() {
                     get<1>(kernel),
                     get<2>(kernel));
 
+                for (auto& result : results) {
+                    if (result.name == get<0>(kernel) &&
+                        result.h == get<3>(kernel) &&
+                        result.w == get<4>(kernel) &&
+                        result.batch_dim == get<0>(size) &&
+                        result.a_rows == get<1>(size) &&
+                        result.a_cols == get<2>(size) &&
+                        result.b_cols == get<3>(size) &&
+                        result.b1 == get<4>(size) &&
+                        result.b2 == get<5>(size) &&
+                        result.b3 == get<6>(size)
+                        ) {
+                        result.time += time;
+                        break;
+                    }
+                }
                 curr_it++;
             }
         }
     }
 
     // Output the results in the original order
-    for (const string name : kernel_names) {
-        for (const auto& kernel: kernels)
-            if (name == get<0>(kernel)) {
-                csv_file << get<0>(kernel) << ","
-                << (get<5>(kernel) / num_repeats_shuffle) << ","
-                << (get<6>(kernel) ? "correct" : "incorrect") << endl;
-            }
+    const string fileName = "kernel_performance.csv";
+    ofstream csv_file(fileName);
+    csv_file << "Name, H, W, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time" << endl;
+
+    for (const auto& result: results) {
+        csv_file << result.name << ","
+        << result.h << ","
+        << result.w << ","
+        << result.batch_dim << ","
+        << result.a_rows << ","
+        << result.a_cols << ","
+        << result.b_cols << ","
+        << result.b1 << ","
+        << result.b2 << ","
+        << result.b3 << ","
+        << result.correct << ","
+        << result.time << endl;
     }
 
     csv_file.close();
