@@ -136,7 +136,7 @@ py::array_t<double> bmm_naive_wrapper(py::array_t<double> A, py::array_t<double>
 
         int bA = A_buf.shape[0], rA = A_buf.shape[1], cA = A_buf.shape[2], cB = B_buf.shape[2];
 
-        ptr_res = bmm_naive(ptr_A, ptr_B, ptr_res, bA, rA, cB, cA);
+        bmm_naive(ptr_A, ptr_B, ptr_res, bA, rA, cB, cA);
 
         return result;
         }
@@ -155,7 +155,7 @@ py::array_t<double> bmm_naive_wrapper(py::array_t<double> A, py::array_t<double>
         int rA = A_buf.shape[0], cA = A_buf.shape[1], cB = B_buf.shape[1];
 
         // batch dimension is 1
-        ptr_res = bmm_naive(ptr_A, ptr_B, ptr_res, 1, rA, cB, cA);
+        bmm_naive(ptr_A, ptr_B, ptr_res, 1, rA, cB, cA);
 
         return result;
     }

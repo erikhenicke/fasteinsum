@@ -17,7 +17,7 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 using namespace std;
 
-double *bmm_naive(const double *a, const double *b, double *c,
+void bmm_naive(const double *a, const double *b, double *c,
     const int batch_dim, const int a_rows, const int b_cols, const int a_cols) {
 
     std::fill(c, c + batch_dim * a_rows * b_cols, 0.0);
@@ -36,7 +36,6 @@ double *bmm_naive(const double *a, const double *b, double *c,
                     c[(d * a_rows + i) * b_cols + j] += a[(d * a_rows + i) * a_cols + k] * b[(d * a_cols + k) * b_cols + j];
                 }
             }
-    return c;
 }
 
 

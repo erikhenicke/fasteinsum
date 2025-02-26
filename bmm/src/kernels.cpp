@@ -59,7 +59,7 @@ void bmm(const double *a, const double *b, double *c, const int bd, const int a_
 }
 
 void bmm_parallel(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int)) {
+         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
 
     // Pad a_rows and b_cols to be multiples of h and w
     int a_rows_padded = a_rows + (h - a_rows % h) % h;
@@ -83,7 +83,7 @@ void bmm_parallel(const double *a, const double *b, double *c, const int bd, con
                 for (int i1 = 0; i1 < a_cols; i1 += b1) {
                     for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
                         for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
-	                        kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols), h, w);
+	                        kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols));
                         }
                     }
                 }
@@ -398,7 +398,7 @@ void kernel_4x12_test2(double *a_aligned, double *b_aligned, double *c_aligned, 
 }
 
 void kernel_4x12(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
-             int a_idx, int b_idx, int l, int r, int h, int w) {
+             int a_idx, int b_idx, int l, int r) {
     aligned_vector<__m256d> t(12); // h * wl = 4 * 3 = 12
     __m256d zero = _mm256_setzero_pd();
     for (int i = 0; i < 12; ++i) {
@@ -970,7 +970,7 @@ void kernel_8x12(double *a_aligned, double *b_aligned, double *c_aligned, const 
 }
 
 void kernel_8x16(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
-             int a_idx, int b_idx, int l, int r, int h, int w) {
+             int a_idx, int b_idx, int l, int r) {
     aligned_vector<__m256d> t(32); // h * wl = 8 * 4 = 32
     __m256d zero = _mm256_setzero_pd();
     for (int i = 0; i < 32; ++i) {
