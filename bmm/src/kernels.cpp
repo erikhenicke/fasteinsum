@@ -398,7 +398,7 @@ void kernel_4x12_test2(double *a_aligned, double *b_aligned, double *c_aligned, 
 }
 
 void kernel_4x12(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
-             int a_idx, int b_idx, int l, int r) {
+             int a_idx, int b_idx, int l, int r, int h, int w) {
     aligned_vector<__m256d> t(12); // h * wl = 4 * 3 = 12
     __m256d zero = _mm256_setzero_pd();
     for (int i = 0; i < 12; ++i) {
