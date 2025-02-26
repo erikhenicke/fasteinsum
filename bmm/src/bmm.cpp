@@ -179,7 +179,7 @@ void bmm(const double *a, const double *b, double *c, const int bd, const int a_
                 for (int i1 = 0; i1 < a_cols; i1 += b1) {
                     for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
                         for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
-                            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols) , h, w, simd_length, wl);
+                            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols), h, w, simd_length, wl);
                         }
                     }
                 }

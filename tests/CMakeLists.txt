@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(catch_tests_bmm LANGUAGES CXX)
 
+find_package(BLAS REQUIRED)
+
 #set standards compiler independent
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -10,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(catch_tests_bmm catch_main.cpp test_bmm_trivial.cpp test_bmm.cpp)
 
 # link libraries bmm and catch to the executable
-target_link_libraries(catch_tests_bmm PUBLIC bmm catch)
+target_link_libraries(catch_tests_bmm PUBLIC bmm catch ${BLAS_LIBRARIES})
 
 # add executable for mm tests
 add_executable(catch_tests_mm catch_main.cpp test_mm.cpp)
