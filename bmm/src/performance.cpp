@@ -216,15 +216,15 @@ int main() {
 //         {"kernel_8x16 parallel 5", bmm_parallel_more5, kernel_8x16, 8, 16},
 //         {"kernel_8x16_test2", bmm_parallel, kernel_8x16_test2, 8, 16},
 //         {"kernel_8x20", bmm_parallel, kernel_8x20, 8, 20},
-//        {"simple_kernel", bmm2, kernel2, 6, 8},
+//        {"simple_kernel", bmm_simple_kernel, kernel2, 6, 8},
 //        {"kernel_8x16", bmm_parallel, kernel_8x16, 8, 16}};
 
 	functions = {
         {"kernel8x16", bmm_kernel8x16_wrapper},
         {"kernel4x12", bmm_kernel4x12_wrapper},
-        {"simple", bmm_kernel_simple_wrapper},
+//        {"simple", bmm_kernel_simple_wrapper},
         {"blocked", bmm_blocked_wrapper},
-        {"blas", bmm_blas_wrapper}
+//        {"blas", bmm_blas_wrapper}
         };
 
     // Contains:
@@ -236,25 +236,30 @@ int main() {
     // 6. B2
     // 7. B3
     vector<tuple<int, int, int, int, int, int, int>> sizes = {
-        // filled below
+        {4, 1024, 1024, 1024, 32, 64, 128},
+        {4, 1024, 1024, 1024, 128, 128, 128},
+        {4, 1024, 1024, 1024, 128, 64, 32},
+        {4, 1024, 1024, 1024, 64, 128, 256},
+        {4, 1024, 1024, 1024, 256, 256, 256},
+        {4, 1024, 1024, 1024, 256, 128, 64}
         };
 
-        // Block sizes to test
-    std::vector<int> b3_sizes = {128};//32, 64, 128, 256};
-    std::vector<int> b2_sizes = {128};//32, 64, 128, 256};
-    std::vector<int> b1_sizes = {128};//32, 64, 128, 256};
-
-    for (int b1 : b1_sizes) {
-        for (int b2 : b2_sizes) {
-            for (int b3 : b3_sizes) {
-//                if (b3 > b2 || b2 > b1) {
-//                    continue;
-//                }
-                // add the block sizes to the sizes vector
-                sizes.push_back({4, 1024, 1024, 1024, b1, b2, b3});
-            }
-        }
-    }
+//        // Block sizes to test
+//    std::vector<int> b3_sizes = {128};//32, 64, 128, 256};
+//    std::vector<int> b2_sizes = {128};//32, 64, 128, 256};
+//    std::vector<int> b1_sizes = {128};//32, 64, 128, 256};
+//
+//    for (int b1 : b1_sizes) {
+//        for (int b2 : b2_sizes) {
+//            for (int b3 : b3_sizes) {
+////                if (b3 > b2 || b2 > b1) {
+////                    continue;
+////                }
+//                // add the block sizes to the sizes vector
+//                sizes.push_back({4, 1024, 1024, 1024, b1, b2, b3});
+//            }
+//        }
+//    }
 
 
     const size_t num_configs = sizes.size() * functions.size();

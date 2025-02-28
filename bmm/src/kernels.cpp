@@ -1,5 +1,4 @@
 #include "aligned_allocator.h"
-#include "bmm.h"
 #include <vector>  // std::vector for using aligned_vector
 #include <cstdlib>
 #include <cstring>
@@ -15,169 +14,141 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 using namespace std;
 
 
+// Simple kernel (with AVX2 but not as efficient as other kernels)
+void kernel2(double *aligned_a, double *aligned_b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols,
+             int a_idx, int b_idx, int l, int r, int height, int width) {
+    const int a_offset = bd * a_rows * a_cols;
+    const int b_offset = bd * a_cols * b_cols;
+    const int c_offset = bd * a_rows * b_cols;
 
-void bmm(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
-//         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int, int, int, int, int)) {
-    // Pad a_rows and b_cols to be multiples of h and w
-    int a_rows_padded = a_rows + (h - a_rows % h) % h;
-    int b_cols_padded = b_cols + (w - b_cols % w) % w;
+    for (int i = a_idx; i < a_idx + height; ++i) {
+        const int a_i_offset = a_offset + i * a_cols;
+        const int c_i_offset = c_offset + i * b_cols;
+        for (int j = b_idx; j < b_idx + width; ++j) {
+            const int b_j_offset = b_offset + j * a_cols;
+            __m256d c_vec1 = _mm256_setzero_pd();
+            __m256d c_vec2 = _mm256_setzero_pd();
+            __m256d c_vec3 = _mm256_setzero_pd();
+            __m256d c_vec4 = _mm256_setzero_pd();
+            __m256d c_vec5 = _mm256_setzero_pd();
+            __m256d c_vec6 = _mm256_setzero_pd();
+            __m256d c_vec7 = _mm256_setzero_pd();
+            __m256d c_vec8 = _mm256_setzero_pd();
+            for (int k = l; k < r; k += 32) {
+                __m256d a_vec1 = _mm256_load_pd(&aligned_a[a_i_offset + k]);
+                __m256d b_vec1 = _mm256_load_pd(&aligned_b[b_j_offset + k]);
+                c_vec1 = _mm256_fmadd_pd(a_vec1, b_vec1, c_vec1);
 
-    // Block sizes need to be multiples of h and w
-    int b2 = b2_ - (b2_ % h);
-    int b3 = b3_ - (b3_ % w);
+                __m256d a_vec2 = _mm256_load_pd(&aligned_a[a_i_offset + k + 4]);
+                __m256d b_vec2 = _mm256_load_pd(&aligned_b[b_j_offset + k + 4]);
+                c_vec2 = _mm256_fmadd_pd(a_vec2, b_vec2, c_vec2);
 
-    // Pack data
-    aligned_vector<double> a_aligned;
-    aligned_vector<double> b_aligned;
-    aligned_vector<double> c_aligned;
-    pack(a, b, a_aligned, b_aligned, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
+                __m256d a_vec3 = _mm256_load_pd(&aligned_a[a_i_offset + k + 8]);
+                __m256d b_vec3 = _mm256_load_pd(&aligned_b[b_j_offset + k + 8]);
+                c_vec3 = _mm256_fmadd_pd(a_vec3, b_vec3, c_vec3);
 
-    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    // #pragma omp parallel for
-    for (int d = 0; d < bd; ++d) {
-        for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
-            for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
-                for (int i1 = 0; i1 < a_cols; i1 += b1) {
-                    for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
-                        for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
-//                            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols), h, w, simd_length, wl);
-	                        kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols));
-                        }
-                    }
-                }
+                __m256d a_vec4 = _mm256_load_pd(&aligned_a[a_i_offset + k + 12]);
+                __m256d b_vec4 = _mm256_load_pd(&aligned_b[b_j_offset + k + 12]);
+                c_vec4 = _mm256_fmadd_pd(a_vec4, b_vec4, c_vec4);
+
+                __m256d a_vec5 = _mm256_load_pd(&aligned_a[a_i_offset + k + 16]);
+                __m256d b_vec5 = _mm256_load_pd(&aligned_b[b_j_offset + k + 16]);
+                c_vec5 = _mm256_fmadd_pd(a_vec5, b_vec5, c_vec5);
+
+                __m256d a_vec6 = _mm256_load_pd(&aligned_a[a_i_offset + k + 20]);
+                __m256d b_vec6 = _mm256_load_pd(&aligned_b[b_j_offset + k + 20]);
+                c_vec6 = _mm256_fmadd_pd(a_vec6, b_vec6, c_vec6);
+
+                __m256d a_vec7 = _mm256_load_pd(&aligned_a[a_i_offset + k + 24]);
+                __m256d b_vec7 = _mm256_load_pd(&aligned_b[b_j_offset + k + 24]);
+                c_vec7 = _mm256_fmadd_pd(a_vec7, b_vec7, c_vec7);
+
+                __m256d a_vec8 = _mm256_load_pd(&aligned_a[a_i_offset + k + 28]);
+                __m256d b_vec8 = _mm256_load_pd(&aligned_b[b_j_offset + k + 28]);
+                c_vec8 = _mm256_fmadd_pd(a_vec8, b_vec8, c_vec8);
             }
-        }
-    }
-
-    // Copy data from aligned memory to original matrix C, removing padding
-    for (int d = 0; d < bd; ++d) {
-        for (int i = 0; i < a_rows; ++i) {
-            std::memcpy(&c[d * a_rows * b_cols + i * b_cols], &c_aligned[d * a_rows_padded * b_cols_padded + i * b_cols_padded], b_cols * sizeof(double));
+            c_vec1 = _mm256_add_pd(c_vec1, c_vec2);
+            c_vec3 = _mm256_add_pd(c_vec3, c_vec4);
+            c_vec5 = _mm256_add_pd(c_vec5, c_vec6);
+            c_vec7 = _mm256_add_pd(c_vec7, c_vec8);
+            c_vec1 = _mm256_add_pd(c_vec1, c_vec3);
+            c_vec5 = _mm256_add_pd(c_vec5, c_vec7);
+            c_vec1 = _mm256_add_pd(c_vec1, c_vec5);
+            __m128d c_low = _mm256_castpd256_pd128(c_vec1);
+            __m128d c_high = _mm256_extractf128_pd(c_vec1, 1);
+            c_low = _mm_add_pd(c_low, c_high);
+            c[c_i_offset + j] += c_low[0] + c_low[1];
         }
     }
 }
 
-void bmm_parallel(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
+// kernel with h, w as parameters (no loop unrolling)
+void kernel_var(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols,
+            const int a_cols, int a_idx, int b_idx, int l, int r, int h, int w, int simd_length, int wl) {
 
-    // Pad a_rows and b_cols to be multiples of h and w
-    int a_rows_padded = a_rows + (h - a_rows % h) % h;
-    int b_cols_padded = b_cols + (w - b_cols % w) % w;
+    // Create a vector of __m256d with size height * width
+    aligned_vector<__m256d> t(h * wl); // kernel size = height * width, temporary t stores 4 doubles in each element, -> h * wl = 6 * 2 = 12
+    // t[i]: i-th element of t (a 4 element _m256d SIMD vector), t[i][j]: j-th double of i-th element of t
 
-    // Block sizes need to be multiples of h and w
-    int b2 = b2_ - (b2_ % h);
-    int b3 = b3_ - (b3_ % w);
+    // Initialize each element with zeros
+    __m256d zero = _mm256_setzero_pd();
+    for (int i = 0; i < h * wl; ++i) {
+        t[i] = zero;
+    }
 
-    // Pack data
-    aligned_vector<double> a_aligned;
-    aligned_vector<double> b_aligned;
-    aligned_vector<double> c_aligned;
-    pack(a, b, a_aligned, b_aligned, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
-
-    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    #pragma omp parallel for collapse(3)
-    for (int d = 0; d < bd; ++d) {
-        for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
-            for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
-                for (int i1 = 0; i1 < a_cols; i1 += b1) {
-                    for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
-                        for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
-	                        kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols));
-                        }
-                    }
-                }
+    int offsetA = (d * a_rows + a_idx) * a_cols + l;
+    int offsetB = d * a_cols * b_cols + b_idx + l * b_cols;
+    for (int k = l; k < r; k++) {
+        for (int j = 0; j < wl; j++) {
+//            cout << "k: " << k << " j: " << j << endl;
+            __m256d b0 = _mm256_load_pd(&b_aligned[d * a_cols * b_cols + k * b_cols + b_idx + j * simd_length]);
+//            cout << "b0: " << b0[0] << " " << b0[1] << " " << b0[2] << " " << b0[3] << endl;
+            for (int i = 0; i < h; i++) {
+//                cout << "i: " << i << endl;
+                __m256d a0 = _mm256_broadcast_sd(&a_aligned[d * a_rows * a_cols + (a_idx + i) * a_cols + k]);
+//                cout << "a0: " << a0[0] << " " << a0[1] << " " << a0[2] << " " << a0[3] << endl;
+                t[i * wl + j] = _mm256_fmadd_pd(a0, b0, t[i * wl + j]);
+//                cout << "t[" << i * wl + j << "]: " << t[i * wl + j][0] << " " << t[i * wl + j][1] << " " << t[i * wl + j][2] << " " << t[i * wl + j][3] << endl;
             }
         }
     }
 
-    // Copy data from aligned memory to original matrix C, removing padding
-    for (int d = 0; d < bd; ++d) {
-        for (int i = 0; i < a_rows; ++i) {
-            std::memcpy(&c[d * a_rows * b_cols + i * b_cols], &c_aligned[d * a_rows_padded * b_cols_padded + i * b_cols_padded], b_cols * sizeof(double));
-        }
-    }
-}
-
-void bmm_parallel_more4(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
-    // Pad a_rows and b_cols to be multiples of h and w
-    int a_rows_padded = a_rows + (h - a_rows % h) % h;
-    int b_cols_padded = b_cols + (w - b_cols % w) % w;
-
-    // Block sizes need to be multiples of h and w
-    int b2 = b2_ - (b2_ % h);
-    int b3 = b3_ - (b3_ % w);
-
-    // Pack data
-    aligned_vector<double> a_aligned;
-    aligned_vector<double> b_aligned;
-    aligned_vector<double> c_aligned;
-    pack(a, b, a_aligned, b_aligned, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
-
-    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    for (int d = 0; d < bd; ++d) {
-        for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
-            for (int i1 = 0; i1 < a_cols; i1 += b1) {
-                #pragma omp parallel for collapse(3)
-                for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
-                    for (int k = i2; k < i2 + b2; k += h) {
-                        for (int j = i3; j < i3 + b3; j += w) {
-                            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, i1 + b1);
-                        }
-                    }
-                }
+    int offsetC = (d * a_rows + a_idx) * b_cols + b_idx;
+    // Update c with the values in t
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < wl; ++j) {
+            for (int k = 0; k < simd_length; ++k) {
+                c_aligned[d * a_rows * b_cols + (a_idx + i) * b_cols + b_idx + j * simd_length + k] += t[i * wl + j][k];
             }
         }
     }
 
-    // Copy data from aligned memory to original matrix C, removing padding
-    for (int d = 0; d < bd; ++d) {
-        for (int i = 0; i < a_rows; ++i) {
-            std::memcpy(&c[d * a_rows * b_cols + i * b_cols], &c_aligned[d * a_rows_padded * b_cols_padded + i * b_cols_padded], b_cols * sizeof(double));
-        }
-    }
+    // int offsetC = (d * a_rows + a_idx) * b_cols + b_idx;
+    // // Update c with the values in t
+    // for (int i = 0; i < h; ++i) {
+    //     for (int j = 0; j < wl; ++j) {
+    //         for (int k = 0; k < simd_length; ++k) {
+    //             c_aligned[offsetC + k] += t[i * wl + j][k];
+    //         }
+    //         offsetC += simd_length;
+    //     }
+    //     offsetC -= wl * simd_length;
+    //     offsetC += b_cols;
+    // }
+
+
+    //    // Update c with the values in t, c += t
+    //	for (int i = 0; i < h; ++i) {
+    //    	for (int j = 0; j < wl; ++j) {
+    //    	    __m256d c_val = _mm256_load_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length]);
+    //    	    __m256d t_val = t[i * wl + j];
+    //    	    __m256d result = _mm256_add_pd(c_val, t_val);
+    //    	    _mm256_store_pd(&c_aligned[(a_idx + i) * b_cols + b_idx + j * simd_length], result);
+    //    	}
+    //	}
 }
 
-void bmm_parallel_more5(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
-    // Pad a_rows and b_cols to be multiples of h and w
-    int a_rows_padded = a_rows + (h - a_rows % h) % h;
-    int b_cols_padded = b_cols + (w - b_cols % w) % w;
 
-    // Block sizes need to be multiples of h and w
-    int b2 = b2_ - (b2_ % h);
-    int b3 = b3_ - (b3_ % w);
-
-    // Pack data
-    aligned_vector<double> a_aligned;
-    aligned_vector<double> b_aligned;
-    aligned_vector<double> c_aligned;
-    pack(a, b, a_aligned, b_aligned, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
-
-    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    for (int d = 0; d < bd; ++d) {
-        for (int i1 = 0; i1 < a_cols; i1 += b1) {
-            #pragma omp parallel for collapse(4)
-            for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
-                for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
-                    for (int k = i2; k < i2 + b2; k += h) {
-                        for (int j = i3; j < i3 + b3; j += w) {
-                            kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, i1 + b1);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Copy data from aligned memory to original matrix C, removing padding
-    for (int d = 0; d < bd; ++d) {
-        for (int i = 0; i < a_rows; ++i) {
-            std::memcpy(&c[d * a_rows * b_cols + i * b_cols], &c_aligned[d * a_rows_padded * b_cols_padded + i * b_cols_padded], b_cols * sizeof(double));
-        }
-    }
-}
 
 // kernel with hardcoded h, w
 
@@ -1300,53 +1271,3 @@ void kernel_8x20(double *a_aligned, double *b_aligned, double *c_aligned, const 
         }
     }
 }
-
-
-//int main() {
-//    // Define matrix dimensions
-//    const int bd = 4;
-//    const int a_rows = 256;
-//    const int b_cols = 256;
-//    const int a_cols = 256;
-//    const int h = 4;
-//    const int w = 20;
-//    const int simd_length = 4;
-//    const int wl = w / simd_length;
-//    const int b1 = 32;
-//    const int b2_ = 64;
-//    const int b3_ = 128;
-//
-//    // Allocate memory for matrices A, B, and C
-//    aligned_vector<double> a(bd * a_rows * a_cols);
-//    aligned_vector<double> b(bd * a_cols * b_cols);
-//    aligned_vector<double> c(bd * a_rows * b_cols, 0.0);
-//
-//    // Generate random matrices A and B
-//    generate_random_matrix(a, a_rows, a_cols);
-//    generate_random_matrix(b, a_cols, b_cols);
-//
-//    cout << "Starting bmm" << endl;
-//
-//    // Call bmm with kernel_6x8
-//    bmm(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols, h, w, simd_length, wl, b1, b2_, b3_, kernel_4x20);
-//
-//    cout << "Finished bmm" << endl;
-//
-//    // Compare this with the reference implementation
-//    aligned_vector<double> c_ref(bd * a_rows * b_cols, 0.0);
-//    bmm_naive(a.data(), b.data(), c_ref.data(), bd, a_rows, b_cols, a_cols);
-//
-//
-//    // Check if the results are correct
-//    bool equal = true;
-//    for (int i = 0; i < bd * a_rows * b_cols; ++i) {
-//        if (abs(c[i] - c_ref[i]) > 1e-6) {
-//            equal = false;
-//            break;
-//        }
-//    }
-//
-//    cout << "Result of bmm is " << (equal ? "correct" : "incorrect") << endl;
-//
-//    return 0;
-//}

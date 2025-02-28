@@ -49,7 +49,7 @@ void bmm_kernel4x12_wrapper(const double *a, const double *b, double *c, const i
 
 void bmm_kernel_simple_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time) {
     auto start = high_resolution_clock::now();
-    bmm2(a, b, c, batch_dim, a_rows, b_cols, a_cols, 6, 8, SIMD_LENGTH, 2, b1, b2, b3, kernel2);
+    bmm_simple_kernel(a, b, c, batch_dim, a_rows, b_cols, a_cols, 6, 8, SIMD_LENGTH, 2, b1, b2, b3, kernel2);
     auto end = high_resolution_clock::now();
     duration<double> elapsed = end - start;
     *time = elapsed.count();
@@ -57,7 +57,7 @@ void bmm_kernel_simple_wrapper(const double *a, const double *b, double *c, cons
 
 void bmm_blocked_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time) {
     auto start = high_resolution_clock::now();
-    bmm3(a, b, c, batch_dim, a_rows, b_cols, a_cols, b1, b2, b3);
+    bmm_T_bl_para(a, b, c, batch_dim, a_rows, b_cols, a_cols, b1, b2, b3);
     auto end = high_resolution_clock::now();
     duration<double> elapsed = end - start;
     *time = elapsed.count();
