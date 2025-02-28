@@ -10,7 +10,7 @@ namespace py = pybind11;
 py::array_t<double> bmm_wrapper(py::array_t<double> A, py::array_t<double> B) {
     py::buffer_info A_buf = A.request(), B_buf = B.request();
 
-    std::cout << "Bmm fast" << std::endl;
+//    std::cout << "BMM (with kernel)" << std::endl;
 
     int h = 8;
     int w = 16;
@@ -65,7 +65,7 @@ py::array_t<double> bmm_wrapper(py::array_t<double> A, py::array_t<double> B) {
 py::array_t<double> bmm_parallel_wrapper(py::array_t<double> A, py::array_t<double> B) {
     py::buffer_info A_buf = A.request(), B_buf = B.request();
 
-    std::cout << "Bmm fast" << std::endl;
+//    std::cout << "BMM PARALLEL" << std::endl;
 
     int h = 8;
     int w = 16;
@@ -120,7 +120,7 @@ py::array_t<double> bmm_parallel_wrapper(py::array_t<double> A, py::array_t<doub
 py::array_t<double> bmm_naive_wrapper(py::array_t<double> A, py::array_t<double> B) {
     py::buffer_info A_buf = A.request(), B_buf = B.request();
 
-    std::cout << "Bmm naive" << std::endl;
+//    std::cout << "BMM NAIVE" << std::endl;
 
     if (A_buf.ndim == 3 && B_buf.ndim == 3) {
 
@@ -163,8 +163,58 @@ py::array_t<double> bmm_naive_wrapper(py::array_t<double> A, py::array_t<double>
         throw std::runtime_error("Number of dimensions must be two or three");
 }
 
+
+py::array_t<double> bmm_blas_wrapper(py::array_t<double> A, py::array_t<double> B) {
+    py::buffer_info A_buf = A.request(), B_buf = B.request();
+
+//    std::cout << "BMM BLAS" << std::endl;
+
+    if (A_buf.ndim == 3 && B_buf.ndim == 3) {
+
+        if (A_buf.shape[2] != B_buf.shape[1] || A_buf.shape[0] != B_buf.shape[0])
+            throw std::runtime_error("Matrix dimensions or batch dimensions do not match for multiplication");
+
+        py::array_t<double> result = py::array_t<double>({A_buf.shape[0], A_buf.shape[1], B_buf.shape[2]});
+        py::buffer_info res_buf = result.request();
+
+        double *ptr_A = static_cast<double *>(A_buf.ptr);
+        double *ptr_B = static_cast<double *>(B_buf.ptr);
+        double *ptr_res = static_cast<double *>(res_buf.ptr);
+
+        int bA = A_buf.shape[0], rA = A_buf.shape[1], cA = A_buf.shape[2], cB = B_buf.shape[2];
+
+        bmm_blas(ptr_A, ptr_B, ptr_res, bA, rA, cB, cA);
+
+        return result;
+        }
+
+    else if (A_buf.ndim == 2 && B_buf.ndim == 2) {
+        if (A_buf.shape[1] != B_buf.shape[0])
+            throw std::runtime_error("Matrix dimensions do not match for multiplication");
+
+        py::array_t<double> result = py::array_t<double>({A_buf.shape[0], B_buf.shape[1]});
+        py::buffer_info res_buf = result.request();
+
+        double *ptr_A = static_cast<double *>(A_buf.ptr);
+        double *ptr_B = static_cast<double *>(B_buf.ptr);
+        double *ptr_res = static_cast<double *>(res_buf.ptr);
+
+        int rA = A_buf.shape[0], cA = A_buf.shape[1], cB = B_buf.shape[1];
+
+        // batch dimension is 1
+        bmm_blas(ptr_A, ptr_B, ptr_res, 1, rA, cB, cA);
+
+        return result;
+    }
+    else
+        throw std::runtime_error("Number of dimensions must be two or three");
+}
+
+
 PYBIND11_MODULE(py_bmm, m) {
-    m.def("bmm", &bmm_wrapper, "multiply two batch matrices");
-    m.def("bmm_parallel", &bmm_parallel_wrapper, "multiply two batch matrices");
-    m.def("bmm_naive", &bmm_naive_wrapper, "multiply two batch matrices");
+    m.def("bmm_kernel", &bmm_wrapper, "Bmm with blocking and 8x16 kernel using AVX2");
+    m.def("bmm_parallel", &bmm_parallel_wrapper, "BMM with blocking, 8x16 kernel and parallelization");
+    m.def("bmm_naive", &bmm_naive_wrapper, "BMM naive implementation");
+    // m.def("bmm_kernel_omp
+    m.def("bmm_blas", &bmm_blas_wrapper, "BMM using BLAS");
 }

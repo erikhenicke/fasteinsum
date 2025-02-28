@@ -113,6 +113,22 @@ list_sizes = [
     "a:24;c:20;b:20;e:20;d:24;g:24;f:20;"
 ]
 
+# helper functions
+def format_str2short_str(einsum_str):
+    idx1, rest = einsum_str.split(',')
+    idx2, idx3 = rest.split('->')
+    return f"{idx3}-{idx1}-{idx2}"
+
+def short_str2format_str(short_str):
+    idx3, idx1, idx2 = short_str.split('-')
+    return f"{idx1},{idx2}->{idx3}"
+
+def shape2shape_str(shape):
+    return '-'.join(map(str, shape))
+
+def shape_str2shape(shape_str):
+    return tuple(map(int, shape_str.split('-')))
+
 def parse_sizes(size_str):
     sizes = {}
     for item in size_str.split(';'):

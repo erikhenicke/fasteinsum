@@ -18,6 +18,7 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 
 using namespace std;
 
+// TODO: update summary once these functions are implemented
 // Final BMM versions:
 // 1. Naive BMM
 // 2. Blocked BMM (with Transposition)
