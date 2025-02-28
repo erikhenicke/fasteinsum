@@ -30,7 +30,7 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # Add the pybind11 module
 pybind11_add_module(py_bmm src/pybind11_wrapper.cpp)
-target_link_libraries(py_bmm PRIVATE bmm)
+target_link_libraries(py_bmm PRIVATE bmm ${BLAS_LIBRARIES})
 
 # add OMP
 find_package(OpenMP REQUIRED)

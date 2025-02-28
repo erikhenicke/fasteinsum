@@ -4,88 +4,62 @@ Runs the benchmarking tests for the einsum implementation against numpy's einsum
 
 import time
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+import py_bmm
 from einsum_bmm import einsum
+from benchmark_set import get_testcases, get_testcases_with_bd, make_bd_only_testcases, generate_einsum_input
 
-test_cases = [
-    # ('bda,dc->abc', np.random.rand(384, 384, 384), np.random.rand(384, 24)),
-    # ('dca,bd->abc', np.random.rand(384, 376, 384), np.random.rand(24, 384)),
-    # ('dbea,ec->abcd', np.random.rand(96, 84, 96, 96), np.random.rand(96, 24)),
-    # ('deca,be->abcd', np.random.rand(96, 84, 84, 96), np.random.rand(24, 84)),
-    # ('ebad,ce->abcd', np.random.rand(96, 84, 96, 84), np.random.rand(24, 96)),
-    # ('efbad,cf->abcde', np.random.rand(48, 36, 36, 48, 36), np.random.rand(24, 36)),
-    # ('ecbfa,fd->abcde', np.random.rand(48, 36, 36, 48, 48), np.random.rand(48, 24)),
-    # ('efcad,bf->abcde', np.random.rand(48, 36, 36, 48, 36), np.random.rand(24, 36)),
-    ('ea,ebcd->abcd', np.random.rand(96, 96), np.random.rand(96, 84, 84, 84)),
-    ('eb,aecd->abcd', np.random.rand(96, 84), np.random.rand(96, 96, 84, 84)),
-    ('ec,abed->abcd', np.random.rand(96, 84), np.random.rand(96, 84, 96, 84)),
-    # ('acd,dbc->ab', np.random.rand(384, 376, 384), np.random.rand(384, 376, 376)),
-    # ('cad,dcb->ab', np.random.rand(384, 384, 384), np.random.rand(384, 384, 376)),
-    # ('acd,db->abc', np.random.rand(384, 376, 384), np.random.rand(384, 376)),
-    # ('ad,bdc->abc', np.random.rand(384, 376), np.random.rand(384, 376, 376)),
-    # ('adc,bd->abc', np.random.rand(384, 376, 376), np.random.rand(384, 376)),
-    # ('adc,db->abc', np.random.rand(384, 384, 376), np.random.rand(384, 376)),
-    # ('adec,ebd->abc', np.random.rand(96, 84, 96, 84), np.random.rand(96, 84, 84)),
-    # ('aebf,dfce->abcd', np.random.rand(96, 84, 84, 84), np.random.rand(96, 84, 84, 84)),
-    # ('ac,cb->ab', np.random.rand(7248, 7248), np.random.rand(7248, 7240)),
-]
+# functions to test with their arguments
+test_functions = {
+    "einsum_bmm_naive": (einsum, py_bmm.bmm_naive),
+    "einsum_bmm": (einsum, py_bmm.bmm),
+    "einsum_bmm_parallel": (einsum, py_bmm.bmm_parallel),
+    "numpy_einsum": (np.einsum,)
+}
+
+# get an example test case and ruin it for all functions
+test_cases = get_testcases()
+test_cases_bd = get_testcases_with_bd(2)
+test_cases_only_bd = make_bd_only_testcases([(10, 100, 100, 100)])
+
+# check size of test cases and if they even can be generated
+for test_case in test_cases + test_cases_bd + test_cases_only_bd:
+    einsum_str, tensor1, tensor2 = generate_einsum_input(test_case)
+    if tensor1 is not None and tensor2 is not None:
+        print(f"Example input for einsum: {einsum_str}, {tensor1.shape}, {tensor2.shape}")
 
 
-bmm_einsum_fast_times = []
-bmm_einsum_slow_times = []
-numpy_einsum_times = []
-einsum_strings = []
 
 
-def einsum_fast(eq, *operands):
-    return einsum(eq, *operands, fast=True)
+idx= 2;
 
-
-def einsum_slow(eq, *operands):
-    return einsum(eq, *operands, fast=False)
-
-
-def benchmark(func, eq, *operands, expected_res=None, num_runs=1):
-    times = []
-    for _ in range(num_runs):
+for func_name, (func, *args) in test_functions.items():
+    print(f"Running benchmark for {func_name}")
+    for test_case in test_cases[:idx]:
+        einsum_str, tensor1, tensor2 = generate_einsum_input(test_case)
+        if tensor1 is None or tensor2 is None:
+            continue
         start = time.time()
-        res = func(eq, *operands)
+        result = func(einsum_str, tensor1, tensor2)
         end = time.time()
-        times.append(end - start)
-        if expected_res is not None:
-            assert np.allclose(res, expected_res)
-    return np.mean(times)
+        print(f"Time for {func_name} with test case {test_case}: {end - start}")
 
-if __name__ == '__main__':
-    print("Running benchmark tests for einsum_bmm.py...")
+    for test_case in test_cases_bd[:idx]:
+        einsum_str, tensor1, tensor2 = generate_einsum_input(test_case)
+        if tensor1 is None or tensor2 is None:
+            continue
+        start = time.time()
+        result = func(einsum_str, tensor1, tensor2)
+        end = time.time()
+        print(f"Time for {func_name} with test case {test_case}: {end - start}")
 
-    # Run benchmark tests
-    for i, (eq, *operands) in enumerate(test_cases):
-        print(f"Test {i + 1}/{len(test_cases)}: {eq}")
-        print(f"Initial shapes a: {operands[0].shape}, b: {operands[1].shape}")
-        einsum_strings.append(eq)
-        res = np.einsum(eq, *operands)
-        # res = None
-        bmm_einsum_fast_times.append(benchmark(einsum_fast, eq, *operands, expected_res=res))
-        bmm_einsum_slow_times.append(benchmark(einsum_slow, eq, *operands, expected_res=res))
-        # numpy_einsum_times.append(benchmark(np.einsum, eq, *operands))
+    for test_case in test_cases_only_bd:
+        einsum_str, tensor1, tensor2 = generate_einsum_input(test_case)
+        if tensor1 is None or tensor2 is None:
+            continue
+        start = time.time()
+        result = func(einsum_str, tensor1, tensor2)
+        end = time.time()
+        print(f"Time for {func_name} with test case {test_case}: {end - start}")
 
-    x = np.arange(len(test_cases))
-    width = 0.2
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    # rects1 = ax.bar(x - width, bmm_einsum_fast_times, width, label='einsum_bmm')
-    # rects2 = ax.bar(x, bmm_einsum_slow_times, width, label='einsum_bmm (naive)')
-    # rects3 = ax.bar(x + width, numpy_einsum_times, width, label='numpy.einsum')
-
-    rects1 = ax.bar(x - width/2, bmm_einsum_fast_times, width, label='einsum_bmm parallel')
-    rects2 = ax.bar(x + width/2, bmm_einsum_slow_times, width, label='einsum_bmm')
-
-    ax.set_ylabel('Execution Time (seconds)')
-    ax.set_title('Benchmark: Kernel vs Parallel Kernel')
-    ax.set_xticks(x)
-    ax.set_xticklabels(einsum_strings, rotation=45, ha='right')
-    ax.legend()
-
-    plt.tight_layout()
-    plt.savefig("benchmark_results.png", dpi=300, bbox_inches="tight")
+    print("")

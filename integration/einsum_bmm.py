@@ -310,7 +310,7 @@ def _do_contraction_via_bmm(
         new_shape_ab,
         perm_ab,
         pure_multiplication,
-        fast,
+        bmm_func,
         backend,
 ):
     # prepare left
@@ -345,11 +345,8 @@ def _do_contraction_via_bmm(
 
     print(f"Matrix shapes a: {a.shape}, b: {b.shape}")
 
-    # Alternatively we can use: np.ascontiguousarray(a)
-    if fast:
-        ab = py_bmm.bmm_parallel(a, b)
-    else:
-        ab = py_bmm.bmm(a, b)
+    # Changed this line to use our library bmm function, given as a parameter
+    ab = bmm_func(a, b)
 
     # prepare the output
     if new_shape_ab is not None:
@@ -360,7 +357,8 @@ def _do_contraction_via_bmm(
     return ab
 
 
-def einsum(eq, a, b=None, *, fast=True, backend=None):
+# Parameter bmm_func determines which bmm function to use
+def einsum(eq, a, b=None, *, bmm_func=py_bmm.bmm_parallel, backend=None):
     """Perform arbitrary single and pairwise einsums using only `matmul`,
     `transpose`, `reshape` and `sum`.  The logic for each is cached based on
     the equation and array shape, and each step is only performed if necessary.
@@ -373,6 +371,7 @@ def einsum(eq, a, b=None, *, fast=True, backend=None):
         The first array to contract.
     b : array_like, optional
         The second array to contract.
+    bmm_func : function used fro bmm, optional
     backend : str, optional
         The backend to use for array operations. If ``None``, dispatch
         automatically based on ``a`` and ``b``.
@@ -404,7 +403,7 @@ def einsum(eq, a, b=None, *, fast=True, backend=None):
         new_shape_ab,
         perm_ab,
         pure_multiplication,
-        fast,
+        bmm_func,
         backend,
     )
 

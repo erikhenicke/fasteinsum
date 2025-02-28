@@ -121,7 +121,7 @@ def parse_sizes(size_str):
             sizes[key] = int(value)
     return sizes
 
-def make_testcases():
+def get_testcases():
     test_cases = []
     for expr, size_str in zip(list_format_strings, list_sizes):
         indices = expr.split('-')
@@ -136,7 +136,7 @@ def make_testcases():
 # for test_case in test_cases:
 #     print(test_case)
 
-def make_testcases_add_bd(bd):
+def get_testcases_with_bd(bd):
     test_cases = []
     for expr, size_str in zip(list_format_strings, list_sizes):
         indices = expr.split('-')
@@ -154,7 +154,7 @@ def make_testcases_add_bd(bd):
 #     print(test_case)
 
 
-def make_only_bd_testcases(sizes):
+def make_bd_only_testcases(sizes):
     # tupel sizes: (bd, a_rows, a_cols, b_cols)
     test_cases = []
     for size in sizes:
@@ -171,8 +171,24 @@ def make_only_bd_testcases(sizes):
 #     print(test_case)
 
 
+MAX_TENSOR_SIZE = 100000000  # Adjust this value as needed
+
 def generate_einsum_input(test_case):
     einsum_str, shape1, shape2 = test_case
+    size1 = np.prod(shape1)
+    size2 = np.prod(shape2)
+
+    if size1 > MAX_TENSOR_SIZE or size2 > MAX_TENSOR_SIZE:
+        print(f"Warning: Skipping tensor generation for test case {test_case} due to large tensor size: {size1}, {size2}")
+        return None, None, None
+
+    # Delete previous tensors if they exist
+    try:
+        del tensor1
+        del tensor2
+    except NameError:
+        pass
+
     tensor1 = np.random.rand(*shape1)
     tensor2 = np.random.rand(*shape2)
     return einsum_str, tensor1, tensor2

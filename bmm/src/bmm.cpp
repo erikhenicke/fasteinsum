@@ -384,7 +384,7 @@ void bmm3(const double *a, const double *b, double *c,
     std::fill(c, c + batch_dim * a_rows * b_cols, 0.0);
     // TODO: Transpose b?
 
-    #pragma omp parallel for simd collapse(4)
+    #pragma omp parallel for simd collapse(3)
 //#pragma omp parallel for shared(matrixA, matrixB, matrixC) schedule(static) num_threads(THREADS)
     for (int d = 0; d < batch_dim; ++d) {
         for (int i = 0; i < b_cols; i += b3) {
