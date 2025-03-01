@@ -8,6 +8,8 @@
 #include <random>
 #include <iomanip>
 #include <unordered_map>
+#include <sstream>
+
 
 #include "aligned_allocator.h"
 //#include "kernels.h"
@@ -178,8 +180,8 @@ double measure_performance(
 // }
 
 int main() {
-    const int num_repeats = 5;
-    const int num_repeats_shuffle = 5;
+    const int num_repeats = 1;
+    const int num_repeats_shuffle = 2;
 
     cout << "Measuring performance..." << endl;
 
@@ -223,8 +225,10 @@ int main() {
         {"kernel8x16", bmm_kernel8x16_wrapper},
         {"kernel4x12", bmm_kernel4x12_wrapper},
 //        {"simple", bmm_kernel_simple_wrapper},
-        {"blocked", bmm_blocked_wrapper},
-//        {"blas", bmm_blas_wrapper}
+//        {"blocked", bmm_blocked_wrapper},
+//        {"blas", bmm_blas_wrapper},
+        {"naive", bmm_naive_wrapper}
+
         };
 
     // Contains:
@@ -236,11 +240,11 @@ int main() {
     // 6. B2
     // 7. B3
     vector<tuple<int, int, int, int, int, int, int>> sizes = {
-        {4, 1024, 1024, 1024, 32, 64, 128},
-        {4, 1024, 1024, 1024, 128, 128, 128},
-        {4, 1024, 1024, 1024, 128, 64, 32},
-        {4, 1024, 1024, 1024, 64, 128, 256},
-        {4, 1024, 1024, 1024, 256, 256, 256},
+//        {4, 1024, 1024, 1024, 32, 64, 128},
+//        {4, 1024, 1024, 1024, 128, 128, 128},
+//        {4, 1024, 1024, 1024, 128, 64, 32},
+//        {4, 1024, 1024, 1024, 64, 128, 256},
+//        {4, 1024, 1024, 1024, 256, 256, 256},
         {4, 1024, 1024, 1024, 256, 128, 64}
         };
 
@@ -357,8 +361,16 @@ int main() {
         result.time /= num_repeats_shuffle;
     }
 
-    // Output the results in the original order
-    const string fileName = "performance.csv";
+//    // Output the results in the original order
+//    const string fileName = "performance.csv";
+//    ofstream csv_file(fileName);
+
+    // Output the results in the original order with a unique file name
+    auto t = time(nullptr);
+    auto tm = *localtime(&t);
+    ostringstream oss;
+    oss << "../data/performance_" << put_time(&tm, "%Y%m%d%H%M%S") << ".csv";
+    string fileName = oss.str();
     ofstream csv_file(fileName);
 //    csv_file << "Name, H, W, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time" << endl;
     csv_file << "Name, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time" << endl;

@@ -4,7 +4,6 @@ Runs the benchmarking tests for the einsum implementation against numpy's einsum
 
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import py_bmm
 from einsum_bmm import einsum
 from benchmark_set import (get_testcases, get_testcases_with_bd, make_bd_only_testcases, generate_einsum_input,
@@ -61,46 +60,26 @@ def run_benchmarks(functions, cases, num_repeat=10, data_path="benchmark_results
                         f"{avg_time}\n")
     print(f"Benchmark_results saved to {data_path}")
 
-# plot results
-def plot_results_einsum_str(data_path="benchmark_results.csv", plot_path="benchmark.png"):
-    # plot with einsum_str on x-axis
-    data = np.genfromtxt(data_path, delimiter=",", names=True, dtype=None, encoding=None)
-    functions = np.unique(data["function"])
-    einsum_strs = np.unique(data["einsum_str"])
-
-    # Initialize arrays to store times for each function
-    times_dict = {function: [] for function in functions}
-
-    for function in functions:
-        for einsum_str in einsum_strs:
-            mask = (data["function"] == function) & (data["einsum_str"] == einsum_str)
-            if np.any(mask):
-                times_dict[function].append(data["time"][mask][0])
+# correctness check agains numpy einsum
+def check_correctness(functions, cases):
+    for name, (function, *args) in functions.items():
+        for case in cases:
+            einsum_str, tensor1, tensor2 = generate_einsum_input(case)
+            if tensor1 is None or tensor2 is None:
+                continue
+            if args:
+                result = function(einsum_str, tensor1, tensor2, bmm_function=args[0])
             else:
-                times_dict[function].append(0)  # Handle missing data
-
-    x = np.arange(len(einsum_strs))
-    width = 0.1
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-
-    # Adjust the bar positions based on the number of functions
-    for i, (function, times) in enumerate(times_dict.items()):
-        ax.bar(x + (i - len(functions) / 2) * width, times, width, label=function)
-
-    ax.set_ylabel('Execution Time (seconds)')
-    ax.set_title('Benchmark: SOME VERY CATCHY TITLE')
-
-    # create format strings for the x-axis labels
-    x_labels = [short_str2format_str(einsum_str) for einsum_str in einsum_strs]
-    ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, rotation=45, ha='right')
-    ax.legend()
-
-    plt.tight_layout()
-    plt.savefig(plot_path, dpi=300, bbox_inches="tight")
-    print(f"Plot saved to {plot_path}")
-
+                result = function(einsum_str, tensor1, tensor2)
+            np_result = np.einsum(einsum_str, tensor1, tensor2)
+            if not np.allclose(result, np_result):
+                print(f"Error in {name} for case {case}")
+                print(f"Expected: {np_result}")
+                print(f"Got: {result}")
+                print(f"Einsum string: {einsum_str}")
+                print(f"Shapes: {tensor1.shape}, {tensor2.shape}")
+                print("")
+    print("All tests passed!")
 
 if __name__ == '__main__':
     # functions to test with their arguments
@@ -112,6 +91,8 @@ if __name__ == '__main__':
         "numpy_einsum": (np.einsum,)
     }
 
+    do_correctness_check = True
+
     num_repeat = 10
 
     print("Generating test cases...")
@@ -119,16 +100,18 @@ if __name__ == '__main__':
     test_cases = get_testcases()
     # test_cases_bd = get_testcases_with_bd(2)
     # test_cases_only_bd = make_bd_only_testcases([(10, 100, 100, 100), (5, 200, 200, 200)])#, (2, 100, 200, 300), (3, 300, 200, 100)])
-    cases.extend(test_cases[1:5])
+    cases.extend(test_cases[1:2])
+
+    if do_correctness_check:
+        print("Checking correctness...")
+        check_correctness(test_functions, cases)
 
     print("Running benchmarks...")
 
     # generate a unique filename for the CSV file
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_filename = f"benchmark_results_{timestamp}.csv"
+    csv_filename = f"../data/benchmark_{timestamp}.csv"
 
     # run benchmarks and save results to CSV
     run_benchmarks(test_functions, cases, num_repeat=num_repeat, data_path=csv_filename)
 
-    # plot results from the CSV file
-    plot_results_einsum_str(data_path=csv_filename, plot_path=f"benchmark_{timestamp}.png")

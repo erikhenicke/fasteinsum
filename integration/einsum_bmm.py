@@ -343,7 +343,7 @@ def _do_contraction_via_bmm(
         b = ar.do("copy", b, order='C', like=backend)
         # print(f"Make b contiguous: {old_strides} -> {b.strides}")
 
-    # print(f"Matrix shapes a: {a.shape}, b: {b.shape}")
+    print(f"Matrix shapes a: {a.shape}, b: {b.shape}")
 
     # Changed this line to use our library bmm function, given as a parameter
     ab = bmm_function(a, b)
