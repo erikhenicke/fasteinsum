@@ -18,4 +18,13 @@ void bmm_blocked_wrapper(const double *a, const double *b, double *c, const int 
 
 void bmm_blas_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time);
 
+void bmm_omp_V1_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time);
+
+void bmm_omp_V2_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time);
+
+void bmm_omp_V3_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time);
+
+void bmm_T_V4_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time);
+
+
 // verschiedene Parallelisie

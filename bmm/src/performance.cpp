@@ -180,8 +180,10 @@ double measure_performance(
 // }
 
 int main() {
-    const int num_repeats = 1;
-    const int num_repeats_shuffle = 2;
+    const int num_repeats = 10;
+    const int num_repeats_shuffle = 10;
+
+    bool do_correctness_check = false;
 
     cout << "Measuring performance..." << endl;
 
@@ -223,11 +225,15 @@ int main() {
 
 	functions = {
         {"kernel8x16", bmm_kernel8x16_wrapper},
-        {"kernel4x12", bmm_kernel4x12_wrapper},
+//        {"kernel4x12", bmm_kernel4x12_wrapper},
 //        {"simple", bmm_kernel_simple_wrapper},
 //        {"blocked", bmm_blocked_wrapper},
 //        {"blas", bmm_blas_wrapper},
-        {"naive", bmm_naive_wrapper}
+//        {"naive", bmm_naive_wrapper},
+        {"omp_para_and_simd", bmm_omp_V1_wrapper},
+        {"omp_just_simd", bmm_omp_V2_wrapper},
+        {"omp_no directive", bmm_omp_V3_wrapper},
+        {"transposed_simd", bmm_T_V4_wrapper}
 
         };
 
@@ -243,9 +249,7 @@ int main() {
 //        {4, 1024, 1024, 1024, 32, 64, 128},
 //        {4, 1024, 1024, 1024, 128, 128, 128},
 //        {4, 1024, 1024, 1024, 128, 64, 32},
-//        {4, 1024, 1024, 1024, 64, 128, 256},
-//        {4, 1024, 1024, 1024, 256, 256, 256},
-        {4, 1024, 1024, 1024, 256, 128, 64}
+        {4, 1024, 1024, 1024, 64, 128, 256},
         };
 
 //        // Block sizes to test
@@ -273,22 +277,25 @@ int main() {
     cout << "Check correctness: " << endl;
     for (const auto& size : sizes) {
         for (auto& func : functions) {
-//            bool isCorrect = check_correctness(
-////                get<3>(kernel), //h, w, not needed anymore
-////                get<4>(kernel),
-//                get<0>(size),
-//                get<1>(size),
-//                get<2>(size),
-//                get<3>(size),
-//                get<4>(size),
-//                get<5>(size),
-//                get<6>(size),
-//                get<1>(func));
-//            cout << "\tBMM function: " << get<0>(func) << " " << (isCorrect ? "correct" : "incorrect") << endl;
-
-// SKIP CORRECTNESS CHEKCS
+            bool isCorrect = false;
+            if (do_correctness_check) {
+                isCorrect = check_correctness(
+    //                get<3>(kernel), //h, w, not needed anymore
+    //                get<4>(kernel),
+                    get<0>(size),
+                    get<1>(size),
+                    get<2>(size),
+                    get<3>(size),
+                    get<4>(size),
+                    get<5>(size),
+                    get<6>(size),
+                    get<1>(func));
+                cout << "\tBMM function: " << get<0>(func) << " " << (isCorrect ? "correct" : "incorrect") << endl;
+                }
+            else { // SKIP CORRECTNESS CHEKCS
        			cout << "Skipping correctness checks" << endl;
-	            bool isCorrect = true;
+	            isCorrect = true;
+                }
 
             results.push_back({
                     get<0>(func),

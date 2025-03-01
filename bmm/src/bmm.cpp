@@ -28,7 +28,7 @@ using namespace std;
 // 6. BLAS BMM
 
 // Other functions:
-// Preprocessing functions: pack, pack_T
+// Preprocessing functions: pack, packT, pack_T_pad
 // Other BMM versions:
 //     - bmm_simple_kernel (using simple kernel)
 //     - bmm_var_kernel (using kernel with variable size, no loop unrolling)
@@ -97,12 +97,78 @@ void pack(
 }
 
 /**
+ * \brief Pack data into aligned memory and transpose B.
+ *
+ * This function packs the data of matrices A and B into aligned memory for efficient memory access.
+ * The data is padded (e.g. to be multiples of h and w) and C is initialized with zeros.
+ * The matrix B is transposed.
+ *
+ * \param a Pointer to matrix A.
+ * \param b Pointer to matrix B.
+ * \param a_aligned Aligned memory for matrix A.
+ * \param b_aligned Aligned memory for matrix B.
+ * \param c_aligned Aligned memory for matrix C.
+ * \param bd Batch dimension.
+ * \param a_rows Number of rows of matrix A.
+ * \param a_cols Number of columns of matrix A.
+ * \param b_cols Number of columns of matrix B.
+ * \param a_rows_padded Number of rows of matrix A after padding.
+ * \param b_cols_padded Number of columns of matrix B after padding.
+ */
+void packT(
+    const double *a,
+    const double *b,
+    aligned_vector<double> &a_aligned,
+    aligned_vector<double> &b_aligned,
+    aligned_vector<double> &c_aligned,
+    const int bd, const int a_rows,
+    const int a_cols, const int b_cols,
+    const int a_rows_padded,
+    const int b_cols_padded)
+{
+    // Allocate aligned memory for matrices A, B, and C with padded dimensions
+    a_aligned.resize(bd * a_rows_padded * a_cols);
+    b_aligned.resize(bd * a_cols * b_cols_padded);
+    c_aligned.resize(bd * a_rows_padded * b_cols_padded);
+
+    // Copy data from original matrix A to aligned memory and set padded elements to 0
+    for (int d = 0; d < bd; ++d) {
+        for (int i = 0; i < a_rows_padded; ++i) {
+            if (i < a_rows) {
+                std::memcpy(&a_aligned[(d * a_rows_padded + i) * a_cols], &a[(d * a_rows + i) * a_cols], a_cols * sizeof(double));
+            } else {
+                std::fill(&a_aligned[(d * a_rows_padded + i) * a_cols], &a_aligned[(d * a_rows_padded + (i + 1)) * a_cols], 0.0);
+            }
+        }
+    }
+
+    // Copy data from original matrix B to aligned memory and set padded elements to 0
+    // Transpose simultaniously
+    for (int d = 0; d < bd; ++d) {
+        for (int i = 0; i < a_cols; ++i) {
+            for (int j = 0; j < b_cols_padded; ++j) {
+                if (i < a_cols && j < b_cols) {
+                    b_aligned[d * a_cols * b_cols_padded + j * a_cols + i] = b[d * a_cols * b_cols + i * b_cols + j];
+                } else {
+                    b_aligned[d * a_cols * b_cols_padded + j * a_cols + i] = 0.0;
+                }
+            }
+        }
+    }
+
+    // Initialize result matrix c to zero
+    std::fill(c_aligned.begin(), c_aligned.end(), 0.0);
+}
+
+
+/**
 * \brief Pack data into aligned memory with transposition.
 *
 * Same as "pack" but additionally transposes matrix B.
-* Also padding for a_cols. TODO: Check if padding is necessary for b_cols.
+* Also padding for a_cols.
+* Used for simple kernel, there padding needed for a_cols.
 */
-void pack_T(
+void pack_T_pad(
     const double *a,
     const double *b,
     aligned_vector<double> &a_aligned,
@@ -397,7 +463,7 @@ void bmm_simple_kernel(const double *a, const double *b, double *c, const int bd
     aligned_vector<double> a_aligned;
     aligned_vector<double> b_aligned_transposed;
     aligned_vector<double> c_aligned;
-    pack_T(a, b, a_aligned, b_aligned_transposed, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, a_cols_padded, b_cols_padded);
+    pack_T_pad(a, b, a_aligned, b_aligned_transposed, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, a_cols_padded, b_cols_padded);
 
     // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
     #pragma omp parallel for collapse(3)
@@ -496,6 +562,47 @@ void bmm_parallel(const double *a, const double *b, double *c, const int bd, con
                     for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
                         for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
 	                        kernel(a_aligned.data(), b_aligned.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Copy data from aligned memory to original matrix C, removing padding
+    for (int d = 0; d < bd; ++d) {
+        for (int i = 0; i < a_rows; ++i) {
+            std::memcpy(&c[d * a_rows * b_cols + i * b_cols], &c_aligned[d * a_rows_padded * b_cols_padded + i * b_cols_padded], b_cols * sizeof(double));
+        }
+    }
+}
+
+void bmm_parallelT(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
+         void (*kernelT)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
+
+    // Pad a_rows and b_cols to be multiples of h and w
+    int a_rows_padded = a_rows + (h - a_rows % h) % h;
+    int b_cols_padded = b_cols + (w - b_cols % w) % w;
+
+    // Block sizes need to be multiples of h and w
+    int b2 = b2_ - (b2_ % h);
+    int b3 = b3_ - (b3_ % w);
+
+    // Pack data
+    aligned_vector<double> a_aligned;
+    aligned_vector<double> b_aligned_trans;
+    aligned_vector<double> c_aligned;
+    packT(a, b, a_aligned, b_aligned_trans, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
+
+    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
+#pragma omp parallel for collapse(3)
+    for (int d = 0; d < bd; ++d) {
+        for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
+            for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
+                for (int i1 = 0; i1 < a_cols; i1 += b1) {
+                    for (int k = i2; k < std::min(i2 + b2, a_rows_padded); k += h) {
+                        for (int j = i3; j < std::min(i3 + b3, b_cols_padded); j += w) {
+                            kernelT(a_aligned.data(), b_aligned_trans.data(), c_aligned.data(), d, a_rows_padded, b_cols_padded, a_cols, k, j, i1, std::min(i1 + b1, a_cols));
                         }
                     }
                 }

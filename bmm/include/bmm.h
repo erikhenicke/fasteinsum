@@ -11,7 +11,10 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 void pack(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned, aligned_vector<double> &c_aligned,
           const int bd, const int a_rows, const int a_cols, const int b_cols, const int a_rows_padded, const int b_cols_padded);
 
-void pack_T(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned, aligned_vector<double> &c_aligned,
+void packT(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned, aligned_vector<double> &c_aligned,
+          const int bd, const int a_rows, const int a_cols, const int b_cols, const int a_rows_padded, const int b_cols_padded);
+
+void pack_T_pad(const double *a, const double *b, aligned_vector<double> &a_aligned, aligned_vector<double> &b_aligned, aligned_vector<double> &c_aligned,
            const int bd, const int a_rows, const int a_cols, const int b_cols, const int a_rows_padded, const int b_cols_padded);
 
 
@@ -31,6 +34,9 @@ void bmm(const double *a, const double *b, double *c, const int bd, const int a_
          void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
 
 void bmm_parallel(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
+         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
+
+void bmm_parallelT(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
          void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int));
 
 void bmm_parallel_more4(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,

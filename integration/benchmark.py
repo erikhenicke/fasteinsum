@@ -87,6 +87,7 @@ if __name__ == '__main__':
         "einsum_bmm_naive": (einsum, py_bmm.bmm_naive),
         "einsum_bmm_kernel": (einsum, py_bmm.bmm_kernel),
         "einsum_bmm_parallel": (einsum, py_bmm.bmm_parallel),
+        "einsum_bmm_parallel_only_omp": (einsum, py_bmm.bmm_parallel_only_omp),
         "einsum_bmm_blas": (einsum, py_bmm.bmm_blas),
         "numpy_einsum": (np.einsum,)
     }

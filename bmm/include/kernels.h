@@ -17,6 +17,17 @@
 // h = 4, 6, 8, (maybe later 10, 12, 16, ...)
 // simd_length = 4
 // wl = w / simd_length
+void kernel_omp_8x16_v1(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r);
+
+void kernel_omp_8x16_v2(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r);
+
+void kernel_omp_8x16_v3(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r);
+
+void kernel_T_v4(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r);
 
 void kernel2(double *a_aligned, double *b_aligned, double *c, const int d, const int a_rows, const int b_cols, const int a_cols, int a_idx, int b_idx, int l, int r, int height, int width);
 

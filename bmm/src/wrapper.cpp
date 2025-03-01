@@ -70,3 +70,35 @@ void bmm_blas_wrapper(const double *a, const double *b, double *c, const int bat
     duration<double> elapsed = end - start;
     *time = elapsed.count();
 }
+
+void bmm_omp_V1_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time) {
+    auto start = high_resolution_clock::now();
+    bmm_parallel(a, b, c, batch_dim, a_rows, b_cols, a_cols, 8, 16, SIMD_LENGTH, 2, b1, b2, b3, kernel_omp_8x16_v1);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_omp_V2_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time) {
+    auto start = high_resolution_clock::now();
+    bmm_parallel(a, b, c, batch_dim, a_rows, b_cols, a_cols, 8, 16, SIMD_LENGTH, 2, b1, b2, b3, kernel_omp_8x16_v2);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_omp_V3_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time) {
+    auto start = high_resolution_clock::now();
+    bmm_parallel(a, b, c, batch_dim, a_rows, b_cols, a_cols, 8, 16, SIMD_LENGTH, 2, b1, b2, b3, kernel_omp_8x16_v3);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_T_V4_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols, const int a_cols, int b1, int b2, int b3, double * time) {
+    auto start = high_resolution_clock::now();
+    bmm_parallelT(a, b, c, batch_dim, a_rows, b_cols, a_cols, 8, 16, SIMD_LENGTH, 2, b1, b2, b3, kernel_T_v4);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}

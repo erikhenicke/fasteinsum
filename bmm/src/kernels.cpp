@@ -14,6 +14,142 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64>>;
 using namespace std;
 
 
+void kernel_omp_8x16_v1(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r) {
+    int offsetA = d * a_rows * a_cols + a_idx * a_cols + l;
+    int offsetB = d * a_cols * b_cols + l * b_cols + b_idx;
+
+    // Temporary storage for the results
+    double t[8][16] = {0};
+
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            t[i][j] = 0.0;
+        }
+    }
+
+    for (int k = l; k < r; k++) {
+        #pragma omp parallel for collapse(2)
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < 16; ++j) {
+                t[i][j] += a_aligned[offsetA + i * a_cols] * b_aligned[offsetB + j];
+            }
+        }
+        offsetA++;
+        offsetB += b_cols;
+    }
+
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            c_aligned[(d * a_rows + a_idx + i) * b_cols + b_idx + j] += t[i][j];
+        }
+    }
+}
+
+void kernel_omp_8x16_v2(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r) {
+    int offsetA = d * a_rows * a_cols + a_idx * a_cols + l;
+    int offsetB = d * a_cols * b_cols + l * b_cols + b_idx;
+
+    // Temporary storage for the results
+    double t[8][16] = {0};
+
+    for (int i = 0; i < 8; ++i) {
+        #pragma omp simd
+        for (int j = 0; j < 16; ++j) {
+            t[i][j] = 0.0;
+        }
+    }
+
+    for (int k = l; k < r; k++) {
+        for (int i = 0; i < 8; ++i) {
+            #pragma omp simd
+            for (int j = 0; j < 16; ++j) {
+                t[i][j] += a_aligned[offsetA + i * a_cols] * b_aligned[offsetB + j];
+            }
+        }
+        offsetA++;
+        offsetB += b_cols;
+    }
+
+    for (int i = 0; i < 8; ++i) {
+        #pragma omp simd
+        for (int j = 0; j < 16; ++j) {
+            c_aligned[(d * a_rows + a_idx + i) * b_cols + b_idx + j] += t[i][j];
+        }
+    }
+}
+
+void kernel_omp_8x16_v3(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r) {
+    int offsetA = d * a_rows * a_cols + a_idx * a_cols + l;
+    int offsetB = d * a_cols * b_cols + l * b_cols + b_idx;
+
+    // Temporary storage for the results
+    double t[8][16] = {0};
+
+//    #pragma omp simd
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            t[i][j] = 0.0;
+        }
+    }
+
+    for (int k = l; k < r; k++) {
+//        #pragma omp simd
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < 16; ++j) {
+                t[i][j] += a_aligned[offsetA + i * a_cols] * b_aligned[offsetB + j];
+            }
+        }
+        offsetA++;
+        offsetB += b_cols;
+    }
+
+//    #pragma omp simd
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            c_aligned[(d * a_rows + a_idx + i) * b_cols + b_idx + j] += t[i][j];
+        }
+    }
+}
+
+void kernel_T_v4(double *a_aligned, double *b_aligned_transposed, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+                int a_idx, int b_idx, int l, int r) {
+    int offsetA = d * a_rows * a_cols + a_idx * a_cols + l;
+    int offsetB = d * b_cols * a_cols + b_idx * a_cols + l;
+
+    // Temporary storage for the results
+    double t[8][16] = {0};
+
+    for (int i = 0; i < 8; ++i) {
+        #pragma omp simd
+        for (int j = 0; j < 16; ++j) {
+            t[i][j] = 0.0;
+        }
+    }
+
+    for (int k = l; k < r; k++) {
+        for (int i = 0; i < 8; ++i) {
+            #pragma omp simd
+            for (int j = 0; j < 16; ++j) {
+                t[i][j] += a_aligned[offsetA + i * a_cols] * b_aligned_transposed[offsetB + j * a_cols];
+            }
+        }
+        offsetA++;
+        offsetB++;
+    }
+
+    for (int i = 0; i < 8; ++i) {
+        #pragma omp simd
+        for (int j = 0; j < 16; ++j) {
+            c_aligned[(d * a_rows + a_idx + i) * b_cols + b_idx + j] += t[i][j];
+        }
+    }
+}
+
 // Simple kernel (with AVX2 but not as efficient as other kernels)
 void kernel2(double *aligned_a, double *aligned_b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols,
              int a_idx, int b_idx, int l, int r, int height, int width) {
