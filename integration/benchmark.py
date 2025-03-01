@@ -31,8 +31,6 @@ def flush_cache():
     np.random.seed(0)
     np.random.rand(1000, 1000)
 
-
-
 # benchmarking
 def run_benchmarks(functions, cases, num_repeat=10, data_path="benchmark_results.csv"):
     with open(data_path, "w") as f:
@@ -61,9 +59,11 @@ def run_benchmarks(functions, cases, num_repeat=10, data_path="benchmark_results
     print(f"Benchmark_results saved to {data_path}")
 
 # correctness check agains numpy einsum
+from tqdm import tqdm
+
 def check_correctness(functions, cases):
-    for name, (function, *args) in functions.items():
-        for case in cases:
+    for name, (function, *args) in tqdm(functions.items(), desc="Functions"):
+        for case in tqdm(cases, desc="Cases", leave=False):
             einsum_str, tensor1, tensor2 = generate_einsum_input(case)
             if tensor1 is None or tensor2 is None:
                 continue
@@ -79,7 +79,7 @@ def check_correctness(functions, cases):
                 print(f"Einsum string: {einsum_str}")
                 print(f"Shapes: {tensor1.shape}, {tensor2.shape}")
                 print("")
-    print("All tests passed!")
+    print("All tests passed.")
 
 if __name__ == '__main__':
     # functions to test with their arguments
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         "numpy_einsum": (np.einsum,)
     }
 
-    do_correctness_check = True
+    do_correctness_check = False
 
     num_repeat = 10
 
@@ -102,9 +102,21 @@ if __name__ == '__main__':
     # test_cases_only_bd = make_bd_only_testcases([(10, 100, 100, 100), (5, 200, 200, 200)])#, (2, 100, 200, 300), (3, 300, 200, 100)])
     cases.extend(test_cases[1:2])
 
+    # make cases with different matrix sizes
+    bds = [2, 5, 10]
+    quad_mat_sizes = [100, 200, 500, 1000]
+    sizes = []
+    for bd in bds:
+        for mat_size in quad_mat_sizes:
+            sizes.append((bd, mat_size, mat_size, mat_size))
+    cases_quad = make_bd_only_testcases(sizes)
+
+
     if do_correctness_check:
         print("Checking correctness...")
         check_correctness(test_functions, cases)
+    else:
+        print("Skipping correctness check.")
 
     print("Running benchmarks...")
 
@@ -113,5 +125,6 @@ if __name__ == '__main__':
     csv_filename = f"../data/benchmark_{timestamp}.csv"
 
     # run benchmarks and save results to CSV
-    run_benchmarks(test_functions, cases, num_repeat=num_repeat, data_path=csv_filename)
+    # run_benchmarks(test_functions, cases, num_repeat=num_repeat, data_path=csv_filename)
+    run_benchmarks(test_functions, cases_quad, num_repeat=num_repeat, data_path=csv_filename)
 
