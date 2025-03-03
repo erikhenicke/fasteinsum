@@ -1345,9 +1345,9 @@ void kernel_8x16_test2(double *a_aligned, double *b_aligned, double *c_aligned, 
     _mm_free(t);
 }
 
-void kernel_8x16_pack(const double *a_aligned, const double *b_aligned, double *c_aligned, const int d,
-                      const int a_rows, const int b_cols, const int b_pack_cols, const int a_idx, const int b_idx,
-                      const int a_pack_idx, const int b_pack_idx, const int l, const int r) {
+void kernel_8x16_pack(const double *a_packed, const double *b_packed, double *c_aligned, const int c_cols,
+                      const int b_pack_cols, const int a_idx, const int b_idx, const int a_pack_idx,
+                      const int b_pack_idx, const int l, const int r) {
     aligned_vector<__m256d> t(32); // h * wl = 8 * 4 = 32
     __m256d zero = _mm256_setzero_pd();
     for (int i = 0; i < 32; ++i) {
@@ -1360,54 +1360,54 @@ void kernel_8x16_pack(const double *a_aligned, const double *b_aligned, double *
     for (int k = l; k < r; k++) {
         //_mm_prefetch(&b_aligned[offsetB + b_pack_cols], _MM_HINT_T0);
 
-        __m256d b0 = _mm256_load_pd(&b_aligned[offsetB]);
-        __m256d b1 = _mm256_load_pd(&b_aligned[offsetB + 4]);
-        __m256d b2 = _mm256_load_pd(&b_aligned[offsetB + 8]);
-        __m256d b3 = _mm256_load_pd(&b_aligned[offsetB + 12]);
+        __m256d b0 = _mm256_load_pd(&b_packed[offsetB]);
+        __m256d b1 = _mm256_load_pd(&b_packed[offsetB + 4]);
+        __m256d b2 = _mm256_load_pd(&b_packed[offsetB + 8]);
+        __m256d b3 = _mm256_load_pd(&b_packed[offsetB + 12]);
 
-        __m256d a0 = _mm256_broadcast_sd(&a_aligned[offsetA]);
+        __m256d a0 = _mm256_broadcast_sd(&a_packed[offsetA]);
         t[0] = _mm256_fmadd_pd(a0, b0, t[0]);
         t[1] = _mm256_fmadd_pd(a0, b1, t[1]);
         t[2] = _mm256_fmadd_pd(a0, b2, t[2]);
         t[3] = _mm256_fmadd_pd(a0, b3, t[3]);
 
-        __m256d a1 = _mm256_broadcast_sd(&a_aligned[offsetA + 1 * a_pack_cols]);
+        __m256d a1 = _mm256_broadcast_sd(&a_packed[offsetA + 1 * a_pack_cols]);
         t[4] = _mm256_fmadd_pd(a1, b0, t[4]);
         t[5] = _mm256_fmadd_pd(a1, b1, t[5]);
         t[6] = _mm256_fmadd_pd(a1, b2, t[6]);
         t[7] = _mm256_fmadd_pd(a1, b3, t[7]);
 
-        __m256d a2 = _mm256_broadcast_sd(&a_aligned[offsetA + 2 * a_pack_cols]);
+        __m256d a2 = _mm256_broadcast_sd(&a_packed[offsetA + 2 * a_pack_cols]);
         t[8] = _mm256_fmadd_pd(a2, b0, t[8]);
         t[9] = _mm256_fmadd_pd(a2, b1, t[9]);
         t[10] = _mm256_fmadd_pd(a2, b2, t[10]);
         t[11] = _mm256_fmadd_pd(a2, b3, t[11]);
 
-        __m256d a3 = _mm256_broadcast_sd(&a_aligned[offsetA + 3 * a_pack_cols]);
+        __m256d a3 = _mm256_broadcast_sd(&a_packed[offsetA + 3 * a_pack_cols]);
         t[12] = _mm256_fmadd_pd(a3, b0, t[12]);
         t[13] = _mm256_fmadd_pd(a3, b1, t[13]);
         t[14] = _mm256_fmadd_pd(a3, b2, t[14]);
         t[15] = _mm256_fmadd_pd(a3, b3, t[15]);
 
-        __m256d a4 = _mm256_broadcast_sd(&a_aligned[offsetA + 4 * a_pack_cols]);
+        __m256d a4 = _mm256_broadcast_sd(&a_packed[offsetA + 4 * a_pack_cols]);
         t[16] = _mm256_fmadd_pd(a4, b0, t[16]);
         t[17] = _mm256_fmadd_pd(a4, b1, t[17]);
         t[18] = _mm256_fmadd_pd(a4, b2, t[18]);
         t[19] = _mm256_fmadd_pd(a4, b3, t[19]);
 
-        __m256d a5 = _mm256_broadcast_sd(&a_aligned[offsetA + 5 * a_pack_cols]);
+        __m256d a5 = _mm256_broadcast_sd(&a_packed[offsetA + 5 * a_pack_cols]);
         t[20] = _mm256_fmadd_pd(a5, b0, t[20]);
         t[21] = _mm256_fmadd_pd(a5, b1, t[21]);
         t[22] = _mm256_fmadd_pd(a5, b2, t[22]);
         t[23] = _mm256_fmadd_pd(a5, b3, t[23]);
 
-        __m256d a6 = _mm256_broadcast_sd(&a_aligned[offsetA + 6 * a_pack_cols]);
+        __m256d a6 = _mm256_broadcast_sd(&a_packed[offsetA + 6 * a_pack_cols]);
         t[24] = _mm256_fmadd_pd(a6, b0, t[24]);
         t[25] = _mm256_fmadd_pd(a6, b1, t[25]);
         t[26] = _mm256_fmadd_pd(a6, b2, t[26]);
         t[27] = _mm256_fmadd_pd(a6, b3, t[27]);
 
-        __m256d a7 = _mm256_broadcast_sd(&a_aligned[offsetA + 7 * a_pack_cols]);
+        __m256d a7 = _mm256_broadcast_sd(&a_packed[offsetA + 7 * a_pack_cols]);
         t[28] = _mm256_fmadd_pd(a7, b0, t[28]);
         t[29] = _mm256_fmadd_pd(a7, b1, t[29]);
         t[30] = _mm256_fmadd_pd(a7, b2, t[30]);
@@ -1420,7 +1420,7 @@ void kernel_8x16_pack(const double *a_aligned, const double *b_aligned, double *
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 4; ++j) {
             for (int k = 0; k < 4; ++k) {
-                c_aligned[(d * a_rows + a_idx + i) * b_cols + b_idx + j * 4 + k] += t[i * 4 + j][k];
+                c_aligned[(a_idx + i) * c_cols + b_pack_idx + j * 4 + k] += t[i * 4 + j][k];
             }
         }
     }

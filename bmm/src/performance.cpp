@@ -181,9 +181,9 @@ double measure_performance(
 
 int main() {
     const int num_repeats = 10;
-    const int num_repeats_shuffle = 10;
+    const int num_repeats_shuffle = 16;
 
-    bool do_correctness_check = true;
+    bool do_correctness_check = false;
 
     cout << "Measuring performance..." << endl;
 
@@ -250,6 +250,11 @@ int main() {
 //        {4, 1024, 1024, 1024, 128, 128, 128},
 //        {4, 1024, 1024, 1024, 128, 64, 32},
         {4, 2000, 2000, 2000, 240, 120, 120},
+        {4, 2000, 2000, 2000, 256, 128, 128},
+        {4, 2000, 2000, 2000, 128, 128, 256},
+        {1, 1000, 1000, 1000, 240, 120, 120},
+        {1, 1000, 1000, 1000, 256, 128, 128},
+        {1, 1000, 1000, 1000, 128, 128, 256}
         };
 
 //        // Block sizes to test

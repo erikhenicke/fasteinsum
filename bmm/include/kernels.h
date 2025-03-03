@@ -91,9 +91,9 @@ void kernel_8x16_test(double *a_aligned, double *b_aligned, double *c_aligned, c
 void kernel_8x16_test2(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows,
                        const int b_cols, const int a_cols, int a_idx, int b_idx, int l, int r);
 
-void kernel_8x16_pack(const double *a_aligned, const double *b_aligned, double *c_aligned, const int d,
-                      const int a_rows, const int b_cols, const int b_pack_cols, const int a_idx, const int b_idx,
-                      const int a_pack_idx, const int b_pack_idx, const int l, const int r);
+void kernel_8x16_pack(const double *a_packed, const double *b_packed, double *c_aligned, const int c_cols,
+                      const int b_pack_cols, const int a_idx, const int b_idx, const int a_pack_idx,
+                      const int b_pack_idx, const int l, const int r);
 
 void kernel_8x20(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows,
                  const int b_cols, const int a_cols, int a_idx, int b_idx, int l, int r);

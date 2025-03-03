@@ -613,7 +613,7 @@ void bmm_parallel(const double *a, const double *b, double *c, const int bd, con
     pack(a, b, a_aligned, b_aligned, c_aligned, bd, a_rows, a_cols, b_cols, a_rows_padded, b_cols_padded);
 
     // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    #pragma omp parallel for collapse(3)
+    #pragma omp parallel for collapse(3) schedule(dynamic)
     for (int d = 0; d < bd; ++d) {
         for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
             for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
@@ -774,27 +774,36 @@ void bmm_pack(const double *a, const double *b, double *c, const int bd, const i
     std::fill(c_aligned.begin(), c_aligned.end(), 0.0);
 
     // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
-    #pragma omp parallel for collapse(2) schedule(dynamic, 1)
+    #pragma omp parallel for collapse(3) schedule(dynamic, 1)
     for (int d = 0; d < bd; ++d) {
         for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
             for (int i1 = 0; i1 < a_cols; i1 += b1) {
                 // Init packed A~
-                aligned_vector<double> a_pack;
-                a_pack.resize(b2 * b1);
+                int K;
+                aligned_vector<double> a_pack(b2 * b1);
                 // pack B to B~
                 int J, R;
-                aligned_vector<double> b_pack;
-                b_pack.resize(b1 * b3);
+                aligned_vector<double> b_pack(b1 * b3);
                 packB(b, b_pack, d, i1, R, i3, J, b1, b3, a_cols, b_cols, b_cols_padded);
+                // Init packed C~
+                // Size: a_rows_padded * b3, but since we need to consider the bounds we use (J - i3) instead.
+                int b_pack_cols = J - i3;
+                int c_local_cols = b_pack_cols;
+                aligned_vector<double> c_local(a_rows_padded * c_local_cols, 0.0);
                 for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
                     // pack A to A~
-                    int K;
                     packA(a, a_pack, d, i2, K, i1, R, b2, a_rows, a_cols, a_rows_padded);
                     for (int k = i2; k < K; k += h) {
                         for (int j = i3; j < J; j += w) {
-                            kernel_8x16_pack(a_pack.data(), b_pack.data(), c_aligned.data(), d, a_rows_padded,
-                                               b_cols_padded, (J - i3), k, j, k - i2, j - i3, i1, R);
+                            kernel_8x16_pack(a_pack.data(), b_pack.data(), c_local.data(), c_local_cols, b_pack_cols, k, j , k - i2, j - i3, i1, R);
                         }
+                    }
+                }
+                // Critical section: Add data from c_local to c_aligned
+                #pragma omp critical
+                for (int k = 0; k < a_rows_padded; ++k) {
+                    for (int j = 0; j < J - i3; ++j) {
+                        c_aligned[d * a_rows_padded * b_cols_padded + k * b_cols_padded + (i3 + j)] += c_local[k * (J - i3) + j];
                     }
                 }
             }
