@@ -14,6 +14,56 @@ using aligned_vector = std::vector<T, aligned_allocator<T, 64> >;
 using namespace std;
 
 
+void kernel_4x12_changed_order3(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows, const int b_cols, const int a_cols,
+             int a_idx, int b_idx, int l, int r) {
+    aligned_vector<__m256d> t(12); // h * wl = 4 * 3 = 12
+    __m256d zero = _mm256_setzero_pd();
+    for (int i = 0; i < 12; ++i) {
+        t[i] = zero;
+    }
+
+    int offsetA = d * a_rows * a_cols + a_idx * a_cols + l;
+    int offsetB = d * a_cols * b_cols + l * b_cols + b_idx;
+    for (int k = l; k < r; k++) {
+
+        __m256d a0 = _mm256_broadcast_sd(&a_aligned[offsetA]);
+        __m256d a1 = _mm256_broadcast_sd(&a_aligned[offsetA + 1 * a_cols]);
+	    __m256d a2 = _mm256_broadcast_sd(&a_aligned[offsetA + 2 * a_cols]);
+        __m256d a3 = _mm256_broadcast_sd(&a_aligned[offsetA + 3 * a_cols]);
+
+        __m256d b0 = _mm256_load_pd(&b_aligned[offsetB]);
+        t[0] = _mm256_fmadd_pd(a0, b0, t[0]);
+        t[1] = _mm256_fmadd_pd(a1, b0, t[1]);
+        t[2] = _mm256_fmadd_pd(a2, b0, t[2]);
+        t[3] = _mm256_fmadd_pd(a3, b0, t[3]);
+
+        __m256d b1 = _mm256_load_pd(&b_aligned[offsetB + 4]);
+        t[4] = _mm256_fmadd_pd(a0, b1, t[4]);
+        t[5] = _mm256_fmadd_pd(a1, b1, t[5]);
+        t[6] = _mm256_fmadd_pd(a2, b1, t[6]);
+        t[7] = _mm256_fmadd_pd(a3, b1, t[7]);
+
+        __m256d b2 = _mm256_load_pd(&b_aligned[offsetB + 8]);
+        t[8] = _mm256_fmadd_pd(a0, b2, t[8]);
+        t[9] = _mm256_fmadd_pd(a1, b2, t[9]);
+        t[10] = _mm256_fmadd_pd(a2, b2, t[10]);
+        t[11] = _mm256_fmadd_pd(a3, b2, t[11]);
+
+        offsetA++;
+        offsetB += b_cols;
+    }
+    // indexing changed
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            for (int k = 0; k < 4; ++k) {
+                c_aligned[(d * a_rows + a_idx + j) * b_cols + b_idx + i * 4 + k] += t[i * 4 + j][k];
+            }
+        }
+    }
+}
+
+
+
 void kernel_omp_8x16_v1(double *a_aligned, double *b_aligned, double *c_aligned, const int d, const int a_rows,
                         const int b_cols, const int a_cols,
                         int a_idx, int b_idx, int l, int r) {
