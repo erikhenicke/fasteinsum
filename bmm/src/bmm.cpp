@@ -218,6 +218,65 @@ void pack_T_pad(
     std::fill(c_aligned.begin(), c_aligned.end(), 0.0);
 }
 
+inline void packB(const double *b, aligned_vector<double> &b_pack, const int bd_idx, const int rows_idx, int &rows_idx_bound,
+           const int cols_idx, int &cols_idx_bound, const int block_height, const int block_width, const int b_rows,
+           const int b_cols, const int b_cols_padded) {
+    if (cols_idx + block_width < b_cols_padded) {
+        cols_idx_bound = cols_idx + block_width;
+    } else {
+        cols_idx_bound = b_cols_padded;
+    }
+
+    if (rows_idx + block_height < b_rows) {
+        rows_idx_bound = rows_idx + block_height;
+    } else {
+        rows_idx_bound = b_rows;
+    }
+
+    // Copy data from matrix B to aligned memory and padd with zeros if necessary.
+    int b_pack_rows = rows_idx_bound - rows_idx;
+    int b_pack_cols = cols_idx_bound - cols_idx;
+    if (cols_idx_bound > b_cols) {
+        for (int i = 0; i < b_pack_rows; ++i) {
+            std::memcpy(&b_pack[b_pack_cols * i], &b[(bd_idx * b_rows + rows_idx + i) * b_cols + cols_idx],
+                        (b_cols - cols_idx) * sizeof(double));
+            std::fill(&b_pack[b_pack_cols * i + b_cols - cols_idx], &b_pack[b_pack_cols * (i + 1)], 0.0);
+        }
+    } else {
+        for (int i = 0; i < b_pack_rows; ++i) {
+            std::memcpy(&b_pack[b_pack_cols * i], &b[(bd_idx * b_rows + rows_idx + i) * b_cols + cols_idx],
+                        b_pack_cols * sizeof(double));
+        }
+    }
+}
+
+inline void packA(const double *a, aligned_vector<double> &a_pack, const int bd_idx, const int rows_idx, int &rows_idx_bound, const int cols_idx,
+           int cols_idx_bound, const int block_height, const int a_rows, const int a_cols, const int a_rows_padded) {
+    if (rows_idx + block_height < a_rows_padded) {
+        rows_idx_bound = rows_idx + block_height;
+    } else {
+        rows_idx_bound = a_rows_padded;
+    }
+
+    // Copy data from matrix A to aligned memory and padd with zeros if necessary.
+    int a_pack_rows = rows_idx_bound - rows_idx;
+    int a_pack_cols = cols_idx_bound - cols_idx;
+    if (rows_idx_bound > a_rows) {
+        for (int i = 0; i < a_rows - rows_idx; ++i) {
+            std::memcpy(&a_pack[a_pack_cols * i], &a[(bd_idx * a_rows + rows_idx + i) * a_cols + cols_idx],
+                        a_pack_cols * sizeof(double));
+        }
+        for (int i = a_rows - rows_idx; i < a_pack_rows; ++i) {
+            std::fill(&a_pack[a_pack_cols * i], &a_pack[a_pack_cols * (i + 1)], 0.0);
+        }
+    } else {
+        for (int i = 0; i < a_pack_rows; ++i) {
+            std::memcpy(&a_pack[a_pack_cols * i], &a[(bd_idx * a_rows + rows_idx + i) * a_cols + cols_idx],
+                        a_pack_cols * sizeof(double));
+        }
+    }
+}
+
 /**
  * \brief Naive batch multiplication of two matrices.
  *
@@ -697,3 +756,59 @@ void bmm_parallel_more5(const double *a, const double *b, double *c, const int b
         }
     }
 }
+
+void bmm_pack(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols,
+                    const int a_cols, int h, int w, int b1, int b2_, int b3_) {
+    // Pad a_rows and b_cols to be multiples of h and w
+    int a_rows_padded = a_rows + (h - a_rows % h) % h;
+    int b_cols_padded = b_cols + (w - b_cols % w) % w;
+
+    // Block sizes need to be multiples of h and w
+    // int b1 = b1_ - (b1_ % simd_length);
+    int b2 = b2_ - (b2_ % h);
+    int b3 = b3_ - (b3_ % w);
+
+    // Pack data
+    aligned_vector<double> c_aligned;
+    c_aligned.resize(bd * a_rows_padded * b_cols_padded);
+    std::fill(c_aligned.begin(), c_aligned.end(), 0.0);
+
+    // Perform block matrix multiplication using AVX intrinsics with pipelined FMA calls
+    #pragma omp parallel for collapse(2) schedule(dynamic, 1)
+    for (int d = 0; d < bd; ++d) {
+        for (int i3 = 0; i3 < b_cols_padded; i3 += b3) {
+            for (int i1 = 0; i1 < a_cols; i1 += b1) {
+                // Init packed A~
+                aligned_vector<double> a_pack;
+                a_pack.resize(b2 * b1);
+                // pack B to B~
+                int J, R;
+                aligned_vector<double> b_pack;
+                b_pack.resize(b1 * b3);
+                packB(b, b_pack, d, i1, R, i3, J, b1, b3, a_cols, b_cols, b_cols_padded);
+                for (int i2 = 0; i2 < a_rows_padded; i2 += b2) {
+                    // pack A to A~
+                    int K;
+                    packA(a, a_pack, d, i2, K, i1, R, b2, a_rows, a_cols, a_rows_padded);
+                    for (int k = i2; k < K; k += h) {
+                        for (int j = i3; j < J; j += w) {
+                            kernel_8x16_pack(a_pack.data(), b_pack.data(), c_aligned.data(), d, a_rows_padded,
+                                               b_cols_padded, (J - i3), k, j, k - i2, j - i3, i1, R);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Copy data from aligned memory to original matrix C, removing padding
+    for (int d = 0; d < bd; ++d) {
+        int offsetC = d * a_rows * b_cols;
+        int offsetCAligned = d * a_rows_padded * b_cols_padded;
+        for (int i = 0; i < a_rows; ++i) {
+            std::memcpy(&c[offsetC + i * b_cols], &c_aligned[offsetCAligned + i * b_cols_padded],
+                        b_cols * sizeof(double));
+        }
+    }
+}
+
