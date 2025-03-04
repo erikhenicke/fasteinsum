@@ -113,11 +113,79 @@ void bmm_T_V4_wrapper(const double *a, const double *b, double *c, const int bat
     *time = elapsed.count();
 }
 
-void bmm_pack(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+void bmm_kernel_8x16_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
               const int a_cols, int b1, int b2, int b3, double *time) {
     auto start = high_resolution_clock::now();
-    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 8, 16, b1, b2, b3);
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 8, 16, b1, b2, b3, kernel_8x16_pack);
     auto end = high_resolution_clock::now();
     duration<double> elapsed = end - start;
     *time = elapsed.count();
 }
+
+void bmm_kernel_14x8_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 14, 8, b1, b2, b3, kernel_14x8_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_kernel_4x12_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 4, 12, b1, b2, b3, kernel_4x12_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_kernel_10x12_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 10, 12, b1, b2, b3, kernel_10x12_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_kernel_14x16_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 14, 16, b1, b2, b3, kernel_14x16_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_kernel_18x20_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 18, 20, b1, b2, b3, kernel_18x20_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_kernel_12x24_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 12, 24, b1, b2, b3, kernel_12x24_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+void bmm_kernel_12x32_pack_wrapper(const double *a, const double *b, double *c, const int batch_dim, const int a_rows, const int b_cols,
+              const int a_cols, int b1, int b2, int b3, double *time) {
+    auto start = high_resolution_clock::now();
+    bmm_pack(a, b, c, batch_dim, a_rows, b_cols, a_cols, 12, 32, b1, b2, b3, kernel_12x32_pack);
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+    *time = elapsed.count();
+}
+
+
+
+
+

@@ -718,7 +718,7 @@ void bmm_parallel_more4(const double *a, const double *b, double *c, const int b
 }
 
 void bmm_parallel_more5(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols, const int a_cols, int h, int w, int simd_length, int wl, int b1, int b2_, int b3_,
-         void (*kernel)(double*, double*, double*, const int, const int, const int, const int, int, int, int, int)) {
+         void (*kernel)(double*, double*, double*, int, int, int, int, int, int, int, int)) {
     // Pad a_rows and b_cols to be multiples of h and w
     int a_rows_padded = a_rows + (h - a_rows % h) % h;
     int b_cols_padded = b_cols + (w - b_cols % w) % w;
@@ -758,13 +758,13 @@ void bmm_parallel_more5(const double *a, const double *b, double *c, const int b
 }
 
 void bmm_pack(const double *a, const double *b, double *c, const int bd, const int a_rows, const int b_cols,
-                    const int a_cols, int h, int w, int b1, int b2_, int b3_) {
+                    const int a_cols, const int h, const int w, const int b1, const int b2_, const int b3_,
+                    void (*kernel_pack)(const double*, const double*, double*, int, int, int, int, int, int, int)) {
     // Pad a_rows and b_cols to be multiples of h and w
     int a_rows_padded = a_rows + (h - a_rows % h) % h;
     int b_cols_padded = b_cols + (w - b_cols % w) % w;
 
     // Block sizes need to be multiples of h and w
-    // int b1 = b1_ - (b1_ % simd_length);
     int b2 = b2_ - (b2_ % h);
     int b3 = b3_ - (b3_ % w);
 
@@ -795,7 +795,7 @@ void bmm_pack(const double *a, const double *b, double *c, const int bd, const i
                     packA(a, a_pack, d, i2, K, i1, R, b2, a_rows, a_cols, a_rows_padded);
                     for (int k = i2; k < K; k += h) {
                         for (int j = i3; j < J; j += w) {
-                            kernel_8x16_pack(a_pack.data(), b_pack.data(), c_local.data(), c_local_cols, b_pack_cols, k, j , k - i2, j - i3, i1, R);
+                            kernel_pack(a_pack.data(), b_pack.data(), c_local.data(), c_local_cols, b_pack_cols, k, k - i2, j - i3, i1, R);
                         }
                     }
                 }

@@ -180,10 +180,11 @@ double measure_performance(
 // }
 
 int main() {
-    const int num_repeats = 10;
-    const int num_repeats_shuffle = 16;
+    const int num_repeats = 15;
+    const int num_repeats_shuffle = 10;
 
     bool do_correctness_check = false;
+    bool do_write_csv = true;
 
     cout << "Measuring performance..." << endl;
 
@@ -225,16 +226,13 @@ int main() {
 
 	functions = {
         {"kernel8x16", bmm_kernel8x16_wrapper},
-        {"pack", bmm_pack},
-//        {"kernel4x12", bmm_kernel4x12_wrapper},
-//        {"simple", bmm_kernel_simple_wrapper},
-//        {"blocked", bmm_blocked_wrapper},
-//        {"blas", bmm_blas_wrapper},
-//        {"naive", bmm_naive_wrapper},
-//        {"omp_para_and_simd", bmm_omp_V1_wrapper},
-//        {"omp_just_simd", bmm_omp_V2_wrapper},
-//        {"omp_no directive", bmm_omp_V3_wrapper},
-//        {"transposed_simd", bmm_T_V4_wrapper}
+        {"kernel14x8", bmm_kernel_14x8_pack_wrapper},
+        {"kernel4x12", bmm_kernel_4x12_pack_wrapper},
+        {"kernel10x12", bmm_kernel_10x12_pack_wrapper},
+        {"kernel14x16", bmm_kernel_14x16_pack_wrapper},
+        {"kernel18x20", bmm_kernel_18x20_pack_wrapper},
+        {"kernel12x24", bmm_kernel_12x24_pack_wrapper},
+        {"kernel12x32", bmm_kernel_12x32_pack_wrapper}
         };
 
     // Contains:
@@ -245,34 +243,22 @@ int main() {
     // 5. B1
     // 6. B2
     // 7. B3
-    vector<tuple<int, int, int, int, int, int, int>> sizes = {
-//        {4, 1024, 1024, 1024, 32, 64, 128},
-//        {4, 1024, 1024, 1024, 128, 128, 128},
-//        {4, 1024, 1024, 1024, 128, 64, 32},
-        {4, 2000, 2000, 2000, 240, 120, 120},
-        {4, 2000, 2000, 2000, 256, 128, 128},
-        {4, 2000, 2000, 2000, 128, 128, 256},
-        {1, 1000, 1000, 1000, 240, 120, 120},
-        {1, 1000, 1000, 1000, 256, 128, 128},
-        {1, 1000, 1000, 1000, 128, 128, 256}
-        };
+    vector<tuple<int, int, int, int, int, int, int>> sizes;
 
-//        // Block sizes to test
-//    std::vector<int> b3_sizes = {128};//32, 64, 128, 256};
-//    std::vector<int> b2_sizes = {128};//32, 64, 128, 256};
-//    std::vector<int> b1_sizes = {128};//32, 64, 128, 256};
-//
-//    for (int b1 : b1_sizes) {
-//        for (int b2 : b2_sizes) {
-//            for (int b3 : b3_sizes) {
-////                if (b3 > b2 || b2 > b1) {
-////                    continue;
-////                }
-//                // add the block sizes to the sizes vector
-//                sizes.push_back({4, 1024, 1024, 1024, b1, b2, b3});
-//            }
-//        }
-//    }
+        // Block sizes to test
+    std::vector<int> b3_sizes = {120, 240, 480};
+    std::vector<int> b2_sizes = {120, 240, 480};
+    std::vector<int> b1_sizes = {120, 240, 480};
+
+    for (int b1 : b1_sizes) {
+        for (int b2 : b2_sizes) {
+            for (int b3 : b3_sizes) {
+                // add the block sizes to the sizes vector
+                sizes.push_back({1, 1000, 1000, 1000, b1, b2, b3});
+                sizes.push_back({4, 2000, 2000, 2000, b1, b2, b3});
+            }
+        }
+    }
 
 
     const size_t num_configs = sizes.size() * functions.size();
@@ -302,8 +288,6 @@ int main() {
 
             results.push_back({
                     get<0>(func),
-//                    get<3>(kernel), //h, w, not needed
-//                    get<4>(kernel),
                     get<0>(size),
                     get<1>(size),
                     get<2>(size),
@@ -334,8 +318,6 @@ int main() {
 
                 double time = measure_performance(
                     num_repeats,
-//                    get<3>(kernel),
-//                    get<4>(kernel),
                     get<0>(size),
                     get<1>(size),
                     get<2>(size),
@@ -347,8 +329,6 @@ int main() {
 
                 for (auto& result : results) {
                     if (result.name == get<0>(func) &&
-//                        result.h == get<3>(kernel) &&
-//                        result.w == get<4>(kernel) &&
                         result.batch_dim == get<0>(size) &&
                         result.a_rows == get<1>(size) &&
                         result.a_cols == get<2>(size) &&
@@ -371,39 +351,33 @@ int main() {
         result.time /= num_repeats_shuffle;
     }
 
-//    // Output the results in the original order
-//    const string fileName = "performance.csv";
-//    ofstream csv_file(fileName);
+    if (do_write_csv) {
+        // Output the results in the original order with a unique file name
+        auto t = time(nullptr);
+        auto tm = *localtime(&t);
+        ostringstream oss;
+        oss << "../data/performance_" << put_time(&tm, "%Y%m%d%H%M%S") << ".csv";
+        string fileName = oss.str();
+        ofstream csv_file(fileName);
+        csv_file << "Name, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time" << endl;
 
-    // Output the results in the original order with a unique file name
-    auto t = time(nullptr);
-    auto tm = *localtime(&t);
-    ostringstream oss;
-    oss << "../data/performance_" << put_time(&tm, "%Y%m%d%H%M%S") << ".csv";
-    string fileName = oss.str();
-    ofstream csv_file(fileName);
-//    csv_file << "Name, H, W, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time" << endl;
-    csv_file << "Name, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time" << endl;
+        for (const auto& result: results) {
+            csv_file << result.name << ","
+            << result.batch_dim << ","
+            << result.a_rows << ","
+            << result.a_cols << ","
+            << result.b_cols << ","
+            << result.b1 << ","
+            << result.b2 << ","
+            << result.b3 << ","
+            << result.correct << ","
+            << result.time << endl;
+        }
 
+        csv_file.close();
 
-    for (const auto& result: results) {
-        csv_file << result.name << ","
-//        << result.h << ","
-//        << result.w << ","
-        << result.batch_dim << ","
-        << result.a_rows << ","
-        << result.a_cols << ","
-        << result.b_cols << ","
-        << result.b1 << ","
-        << result.b2 << ","
-        << result.b3 << ","
-        << result.correct << ","
-        << result.time << endl;
+        cout << "Kernel performance results written to " << fileName << endl;
     }
-
-    csv_file.close();
-
-    cout << "Kernel performance results written to " << fileName << endl;
 
     return 0;
 }
