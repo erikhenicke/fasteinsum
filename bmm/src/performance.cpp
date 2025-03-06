@@ -28,7 +28,6 @@ constexpr int SIMD_LENGTH = 4;
 
 struct KernelResult {
     string name;
-//    int h, w;
     int batch_dim, a_rows, a_cols, b_cols;
     int b1, b2, b3;
     bool correct;
@@ -55,8 +54,6 @@ void flush_cache() {
 }
 
 bool check_correctness(
-//    int h,
-//    int w,
     int batch_dim,
     int a_rows,
     int b_cols,
@@ -64,15 +61,12 @@ bool check_correctness(
     int b1,
     int b2,
     int b3,
-    void (*bmm_wrapper)(const double*, const double*, double*, const int, const int, const int, const int, int, int, int, double*))
+    void (*bmm_wrapper)(const double*, const double*, double*, int, int, int, int, int, int, int, double*))
 {
     aligned_vector<double> a(batch_dim * a_rows * a_cols);
     aligned_vector<double> b(batch_dim * a_cols * b_cols);
     aligned_vector<double> c(batch_dim * a_rows * b_cols, 0.0);
     aligned_vector<double> c_ref(batch_dim * a_rows * b_cols, 0.0);
-
-    // std::fill(c.begin(), c.end(), 0.0);
-    // std::fill(c_ref.begin(), c_ref.end(), 0.0);
 
     generate_random_matrix(a, a_rows, a_cols);
     generate_random_matrix(b, a_cols, b_cols);
@@ -97,8 +91,6 @@ bool check_correctness(
 
 double measure_performance(
     int num_repeats,
-//    int h,
-//    int w,
     int batch_dim,
     int a_rows,
     int b_cols,
@@ -106,7 +98,7 @@ double measure_performance(
     int b1,
     int b2,
     int b3,
-    void (*bmm_wrapper)(const double*, const double*, double*, const int, const int, const int, const int, int, int, int, double*))
+    void (*bmm_wrapper)(const double*, const double*, double*, int, int, int, int, int, int, int, double*))
 {
     aligned_vector<double> a(batch_dim * a_rows * a_cols);
     aligned_vector<double> b(batch_dim * a_cols * b_cols);
@@ -126,17 +118,8 @@ double measure_performance(
 
         bmm_wrapper(a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, b1, b2, b3, &times[i]);
 
-//        auto start = high_resolution_clock::now();
-//        bmm(a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, h, w, SIMD_LENGTH, wl, b1, b2_, b3_, kernel);
-//        auto end = high_resolution_clock::now();
-//
-//        duration<double> elapsed = end - start;
-//        times.push_back(elapsed.count());
     }
 
-//    // Calculate median time
-//    sort(times.begin(), times.end());
-//    double median_time = times[times.size() / 2];
     // Calculate average time
     double total_time = 0.0;
     for (int i = 0; i < num_repeats; ++i) {
@@ -144,49 +127,17 @@ double measure_performance(
     }
     double avg_time = total_time / num_repeats;
 
-//    return median_time;
     return avg_time;
 }
 
-// void measure_naive_performance(int num_repeats, ofstream &csv_file) {
-//     const int bd = 1;
-//     const int a_rows = 2048;
-//     const int b_cols = 2048;
-//     const int a_cols = 2048;
-//
-//     aligned_vector<double> a(bd * a_rows * a_cols);
-//     aligned_vector<double> b(bd * a_cols * b_cols);
-//     aligned_vector<double> c(bd * a_rows * b_cols, 0.0);
-//
-//     generate_random_matrix(a, a_rows, a_cols);
-//     generate_random_matrix(b, a_cols, b_cols);
-//
-//     double total_time = 0.0;
-//
-//     for (int i = 0; i < num_repeats; ++i) {
-//         fill(c.begin(), c.end(), 0.0);
-//
-//         auto start = high_resolution_clock::now();
-//         bmm_naive(a.data(), b.data(), c.data(), bd, a_rows, b_cols, a_cols);
-//         auto end = high_resolution_clock::now();
-//
-//         duration<double> elapsed = end - start;
-//         total_time += elapsed.count();
-//
-//     }
-//
-//     double avg_time = total_time / num_repeats;
-//     csv_file << "naive" << "," << avg_time << endl;
-// }
-
 int main() {
-    const int num_repeats = 15;
-    const int num_repeats_shuffle = 10;
+    // const int num_repeats = 1;
+    const int num_repeats_shuffle = 4;
 
     bool do_correctness_check = false;
     bool do_write_csv = true;
 
-    cout << "Measuring performance..." << endl;
+    cout << "Measuring performance..."  << endl;
 
     /* Contains:
      * 1. BMM name
@@ -195,70 +146,66 @@ int main() {
     vector<
         tuple<
             string,
-            void (*)(const double*, const double*, double*, const int, const int, const int, const int, int, int, int, double*)>>
-//    kernels = {
-//         {"kernel_2x24", bmm_parallel, kernel_2x24, 2, 24},
-//         {"kernel_4x4", bmm_parallel, kernel_4x4, 4, 4},
-//         {"kernel_4x8", bmm_parallel, kernel_4x8, 4, 8},
-//         {"kernel_4x12", bmm_parallel, kernel_4x12, 4, 12},
-//         {"kernel_4x12_test1", bmm_parallel, kernel_4x12_test1, 4, 12},
-//         {"kernel_4x12_test2", bmm_parallel, kernel_4x12_test2, 4, 12},
-//         {"kernel_4x16", bmm_parallel, kernel_4x16, 4, 16},
-//         {"kernel_4x20", bmm_parallel, kernel_4x20, 4, 20},
-//         {"kernel_6x4", bmm_parallel, kernel_6x4, 6, 4},
-//         {"kernel_6x8", bmm_parallel, kernel_6x8, 6, 8},
-//         {"kernel_6x12", bmm_parallel, kernel_6x12, 6, 12},
-//         {"kernel_6x16", bmm_parallel, kernel_6x16, 6, 16},
-//         {"kernel_6x20", bmm_parallel, kernel_6x20, 6, 20},
-//         {"kernel_8x4", bmm_parallel, kernel_8x4, 8, 4},
-//         {"kernel_8x8", bmm_parallel, kernel_8x8, 8, 8},
-//         {"kernel_8x12", bmm_parallel, kernel_8x12, 8, 12},
-//         {"kernel_8x16 parallel", bmm_parallel, kernel_8x16, 8, 16},
-//         {"kernel_8x16 parallel 1", bmm_parallel_more1, kernel_8x16, 8, 16},
-//         {"kernel_8x16 parallel 2", bmm_parallel_more2, kernel_8x16, 8, 16},
-//         {"kernel_8x16 parallel 3", bmm_parallel_more3, kernel_8x16, 8, 16},
-//         {"kernel_8x16 parallel 4", bmm_parallel_more4, kernel_8x16, 8, 16},
-//         {"kernel_8x16 parallel 5", bmm_parallel_more5, kernel_8x16, 8, 16},
-//         {"kernel_8x16_test2", bmm_parallel, kernel_8x16_test2, 8, 16},
-//         {"kernel_8x20", bmm_parallel, kernel_8x20, 8, 20},
-//        {"simple_kernel", bmm_simple_kernel, kernel2, 6, 8},
-//        {"kernel_8x16", bmm_parallel, kernel_8x16, 8, 16}};
-
-	functions = {
-        {"kernel8x16", bmm_kernel8x16_wrapper},
-        {"kernel14x8", bmm_kernel_14x8_pack_wrapper},
-        {"kernel4x12", bmm_kernel_4x12_pack_wrapper},
-        {"kernel10x12", bmm_kernel_10x12_pack_wrapper},
-        {"kernel14x16", bmm_kernel_14x16_pack_wrapper},
-        {"kernel18x20", bmm_kernel_18x20_pack_wrapper},
-        {"kernel12x24", bmm_kernel_12x24_pack_wrapper},
-        {"kernel12x32", bmm_kernel_12x32_pack_wrapper}
+            void (*)(const double*, const double*, double*, int, int, int, int, int, int, int, double*)>> functions = {
+        //{"naive", bmm_naive_wrapper},
+        //{"naive parallel", bmm_naive_parallel_wrapper},
+        // {"blas", bmm_blas_wrapper},
+        // {"blas parallel", bmm_blas_parallel_wrapper},
+        // {"kernel", bmm_kernel_wrapper},
+        // {"kernel parallel", bmm_kernel_parallel_wrapper},
+        // {"packing", bmm_packing_wrapper},
+        // {"packing parallel", bmm_packing_parallel_wrapper}
+        {"packing omp", bmm_packing_omp_wrapper},
+        {"packing omp unrolled", bmm_packing_omp_unrolled_wrapper},
+        {"packing omp parallel", bmm_packing_omp_parallel_wrapper},
+        {"packing omp unrolled parallel", bmm_packing_omp_unrolled_parallel_wrapper}
         };
 
+    // NOTE: dont delete - sizes comp: naive
+    // {4000, 4, 50, 50, 50, 220, 88, 80},
+    // {2000, 4, 100, 100, 100, 220, 88, 80},
+    // {100, 4, 250, 250, 250, 220, 88, 80},
+    // {400, 4, 500, 500, 500, 220, 88, 80},
+    // {200, 4, 1000, 1000, 1000, 220, 88, 80},
+    // {100, 4, 1500, 1500, 1500, 220, 88, 80},
+    // {40, 4, 2000, 2000, 2000, 220, 88, 80},
+    // {20, 4, 2500, 2500, 2500, 220, 88, 80},
+    // {10, 4, 3000, 3000, 3000, 220, 88, 80},
+    // {6, 4, 3500, 3500, 3500, 220, 88, 80},
+    // {4 , 4, 4000, 4000, 4000, 220, 88, 80},
+    // {2, 4, 5000, 5000, 5000, 220, 88, 80},
+    // {1, 4, 6000, 6000, 6000, 220, 88, 80},
+    // {1, 4, 7000, 7000, 7000, 220, 88, 80},
+    // {1, 4, 8000, 8000, 8000, 220, 88, 80},
+
     // Contains:
-    // 1. Batch dimension
-    // 2. A rows
-    // 3. A cols
-    // 4. B cols
-    // 5. B1
-    // 6. B2
-    // 7. B3
-    vector<tuple<int, int, int, int, int, int, int>> sizes;
+    // 1. Number of repetitions
+    // 2. Batch dimension
+    // 3. A rows
+    // 4. A cols
+    // 5. B cols
+    // 6. B1
+    // 7. B2
+    // 8. B3
+    vector<tuple<int, int, int, int, int, int, int, int>> sizes = {
+        {10, 4, 2000, 2000, 2000, 220, 88, 80},
+        };
 
-        // Block sizes to test
-    std::vector<int> b3_sizes = {120, 240, 480};
-    std::vector<int> b2_sizes = {120, 240, 480};
-    std::vector<int> b1_sizes = {120, 240, 480};
-
-    for (int b1 : b1_sizes) {
-        for (int b2 : b2_sizes) {
-            for (int b3 : b3_sizes) {
-                // add the block sizes to the sizes vector
-                sizes.push_back({1, 1000, 1000, 1000, b1, b2, b3});
-                sizes.push_back({4, 2000, 2000, 2000, b1, b2, b3});
-            }
-        }
-    }
+    // // Block sizes to test
+    // std::vector<int> b3_sizes = {120};
+    // std::vector<int> b2_sizes = {120};
+    // std::vector<int> b1_sizes = {240};
+    //
+    // for (int b1 : b1_sizes) {
+    //     for (int b2 : b2_sizes) {
+    //         for (int b3 : b3_sizes) {
+    //             // add the block sizes to the sizes vector
+    //             sizes.push_back({1, 1000, 1000, 1000, b1, b2, b3});
+    //             sizes.push_back({4, 2000, 2000, 2000, b1, b2, b3});
+    //
+    //         }
+    //     }
+    // }
 
 
     const size_t num_configs = sizes.size() * functions.size();
@@ -271,30 +218,30 @@ int main() {
             bool isCorrect = false;
             if (do_correctness_check) {
                 isCorrect = check_correctness(
-                    get<0>(size),
                     get<1>(size),
                     get<2>(size),
                     get<3>(size),
                     get<4>(size),
                     get<5>(size),
                     get<6>(size),
+                    get<7>(size),
                     get<1>(func));
                 cout << "\tBMM function: " << get<0>(func) << " " << (isCorrect ? "correct" : "incorrect") << endl;
                 }
-            else { // SKIP CORRECTNESS CHEKCS
+            else { // skip correctness checks
        			cout << "Skipping correctness checks" << endl;
 	            isCorrect = true;
                 }
 
             results.push_back({
                     get<0>(func),
-                    get<0>(size),
                     get<1>(size),
                     get<2>(size),
                     get<3>(size),
                     get<4>(size),
                     get<5>(size),
                     get<6>(size),
+                    get<7>(size),
                     isCorrect,
                     0.0});
         }
@@ -314,10 +261,9 @@ int main() {
 
         for (const auto& size : sizes) {
             for (auto& func : functions) {
-                cout << "\tBMM function: " << get<0>(func) << " (" << curr_it + 1 << "/" << num_configs << ")" << endl;
+                cout << "\tBMM function: " << get<0>(func) << ", " << get<4>(size) << " (" << curr_it + 1 << "/" << num_configs << ")" << endl;
 
                 double time = measure_performance(
-                    num_repeats,
                     get<0>(size),
                     get<1>(size),
                     get<2>(size),
@@ -325,17 +271,18 @@ int main() {
                     get<4>(size),
                     get<5>(size),
                     get<6>(size),
+                    get<7>(size),
                     get<1>(func));
 
                 for (auto& result : results) {
                     if (result.name == get<0>(func) &&
-                        result.batch_dim == get<0>(size) &&
-                        result.a_rows == get<1>(size) &&
-                        result.a_cols == get<2>(size) &&
-                        result.b_cols == get<3>(size) &&
-                        result.b1 == get<4>(size) &&
-                        result.b2 == get<5>(size) &&
-                        result.b3 == get<6>(size)
+                        result.batch_dim == get<1>(size) &&
+                        result.a_rows == get<2>(size) &&
+                        result.a_cols == get<3>(size) &&
+                        result.b_cols == get<4>(size) &&
+                        result.b1 == get<5>(size) &&
+                        result.b2 == get<6>(size) &&
+                        result.b3 == get<7>(size)
                         ) {
                         result.time += time;
                         break;

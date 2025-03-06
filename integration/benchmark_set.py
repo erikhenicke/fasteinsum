@@ -163,6 +163,61 @@ list_sizes = [
     # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;"
 ]
 
+num_repeats = [
+    20,
+    20,
+    20,
+    20,
+    20,
+    1,
+    1,
+    2,
+    20,
+    20,
+
+    20,
+    1,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    20,
+    1,
+
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20
+]
+
 # helper functions
 def format_str2short_str(einsum_str):
     idx1, rest = einsum_str.split(',')
@@ -189,12 +244,12 @@ def parse_sizes(size_str):
 
 def get_testcases():
     test_cases = []
-    for expr, size_str in zip(list_format_strings, list_sizes):
+    for expr, size_str, num_repeat in zip(list_format_strings, list_sizes, num_repeats):
         indices = expr.split('-')
         einsum_str = f"{indices[1]},{indices[2]}->{indices[0]}"
         sizes = parse_sizes(size_str)
         shapes = [tuple(sizes[dim] for dim in indices[1]), tuple(sizes[dim] for dim in indices[2])]
-        test_cases.append((einsum_str, *shapes))
+        test_cases.append((einsum_str, *shapes, num_repeat))
     return test_cases
 
 # test_cases = make_testcases()
@@ -204,12 +259,12 @@ def get_testcases():
 
 def get_testcases_with_bd(bd):
     test_cases = []
-    for expr, size_str in zip(list_format_strings, list_sizes):
+    for expr, size_str, num_repeat in zip(list_format_strings, list_sizes, num_repeats):
         indices = expr.split('-')
         einsum_str = f"z{indices[1]},z{indices[2]}->z{indices[0]}"
         sizes = parse_sizes(size_str)
         shapes = [(bd,) + tuple(sizes[dim] for dim in indices[1]), (bd,) + tuple(sizes[dim] for dim in indices[2])]
-        test_cases.append((einsum_str, *shapes))
+        test_cases.append((einsum_str, *shapes, num_repeat))
     return test_cases
 
 # Example usage
@@ -238,15 +293,15 @@ def make_bd_only_testcases(sizes):
 
 
 MAX_TENSOR_SIZE = 100000000  # Adjust this value as needed
+BIG_TENSOR_SIZE = 700000000000000
 
 def generate_einsum_input(test_case):
-    einsum_str, shape1, shape2 = test_case
-    size1 = np.prod(shape1)
-    size2 = np.prod(shape2)
+    einsum_str, shape1, shape2, num_repeat = test_case
 
-    if size1 > MAX_TENSOR_SIZE or size2 > MAX_TENSOR_SIZE:
-        print(f"Warning: Skipping tensor generation for test case {test_case} due to large tensor size: {size1}, {size2}")
-        return None, None, None
+    # size1 = np.prod(shape1)
+    # size2 = np.prod(shape2)
+    # if size1 > MAX_TENSOR_SIZE or size2 > MAX_TENSOR_SIZE:
+    #     print(f"Warning: Skipping tensor generation for test case {test_case} due to large tensor size: {size1}, {size2}, {size1 * size2}")
 
     # Delete previous tensors if they exist
     try:
@@ -257,7 +312,7 @@ def generate_einsum_input(test_case):
 
     tensor1 = np.random.rand(*shape1)
     tensor2 = np.random.rand(*shape2)
-    return einsum_str, tensor1, tensor2
+    return einsum_str, tensor1, tensor2, num_repeat
 
 # # Calculate einsum result for a test case
 # test_case = test_cases[0]

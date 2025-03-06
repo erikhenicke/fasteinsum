@@ -358,7 +358,7 @@ def _do_contraction_via_bmm(
 
 
 # Parameter bmm_function determines which bmm function to use
-def einsum(eq, a, b=None, *, bmm_function=py_bmm.bmm_parallel, backend=None):
+def einsum(eq, a, b=None, *, bmm_function=py_bmm.bmm_avx2, backend=None):
     """Perform arbitrary single and pairwise einsums using only `matmul`,
     `transpose`, `reshape` and `sum`.  The logic for each is cached based on
     the equation and array shape, and each step is only performed if necessary.

@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(catch_tests_bmm catch_main.cpp test_bmm_trivial.cpp test_bmm.cpp)
 
 # link libraries bmm and catch to the executable
-target_link_libraries(catch_tests_bmm PUBLIC bmm catch ${BLAS_LIBRARIES})
+target_link_libraries(catch_tests_bmm PUBLIC bmm catch)
 
 # add executable for mm tests
 add_executable(catch_tests_mm catch_main.cpp test_mm.cpp)
