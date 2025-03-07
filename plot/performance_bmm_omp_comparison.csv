@@ -1,0 +1,16 @@
+Name, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time
+packing omp parallel,4,50,50,50,220,88,80,1,0.000253317
+packing omp parallel,4,100,100,100,220,88,80,1,0.000444007
+packing omp parallel,4,250,250,250,220,88,80,1,0.00182165
+packing omp parallel,4,500,500,500,220,88,80,1,0.00776053
+packing omp parallel,4,1000,1000,1000,220,88,80,1,0.0410753
+packing omp parallel,4,1500,1500,1500,220,88,80,1,0.147945
+packing omp parallel,4,2000,2000,2000,220,88,80,1,0.359323
+packing omp parallel,4,2500,2500,2500,220,88,80,1,0.711141
+packing omp parallel,4,3000,3000,3000,220,88,80,1,1.20521
+packing omp parallel,4,3500,3500,3500,220,88,80,1,1.84632
+packing omp parallel,4,4000,4000,4000,220,88,80,1,2.71302
+packing omp parallel,4,5000,5000,5000,220,88,80,1,5.53575
+packing omp parallel,4,6000,6000,6000,220,88,80,1,9.57085
+packing omp parallel,4,7000,7000,7000,220,88,80,1,14.5931
+packing omp parallel,4,8000,8000,8000,220,88,80,1,23.6095
