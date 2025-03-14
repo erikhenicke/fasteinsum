@@ -24,8 +24,8 @@ add_executable(performance src/performance.cpp)
 target_include_directories(performance PUBLIC include)
 target_link_libraries(performance PUBLIC bmm)
 
-#set(CMAKE_PREFIX_PATH "/home/erik/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11/")
-set(CMAKE_PREFIX_PATH "/home/sonja/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11")
+set(CMAKE_PREFIX_PATH "/home/erik/.venv_bmm/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/")
+#set(CMAKE_PREFIX_PATH "/home/sonja/.bmm_venv/lib/python3.12/site-packages/pybind11/share/cmake/pybind11")
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 

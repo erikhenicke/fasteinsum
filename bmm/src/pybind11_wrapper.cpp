@@ -2,9 +2,7 @@
 #include <bmm.h>
 #include <iostream>
 #include <kernels.h>
-#include <wrapper.h>
 #include <pybind11/numpy.h>
-
 
 namespace py = pybind11;
 

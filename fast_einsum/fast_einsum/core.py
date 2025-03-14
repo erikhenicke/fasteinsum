@@ -15,7 +15,7 @@ Changes made with this distribution:
 import math
 import functools
 import numpy as np
-import py_bmm
+from . import py_bmm
 
 @functools.lru_cache(2 ** 12)
 def _sanitize_equation(eq):

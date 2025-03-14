@@ -46,7 +46,7 @@ def run_benchmarks(functions, cases, data_path="benchmark_results.csv"):
                     if args:
                         function(einsum_str, tensor1, tensor2, bmm_function=args[0])
                     else:
-                        function(einsum_str, tensor1, tensor2)
+                        function(einsum_str, tensor1, tensor2, optimize=True)
                     end = time.time()
                     print(f"{end - start}")
                     times.append(end - start)
@@ -85,10 +85,10 @@ if __name__ == '__main__':
 
     # functions to test with their arguments
     test_functions = {
-        "einsum_bmm_naive": (einsum, py_bmm.bmm_naive),
-        "einsum_bmm_avx2": (einsum, py_bmm.bmm_avx2),
+        # "einsum_bmm_naive": (einsum, py_bmm.bmm_naive),
+        # "einsum_bmm_avx2": (einsum, py_bmm.bmm_avx2),
         "einsum_bmm_omp": (einsum, py_bmm.bmm_omp),
-        "einsum_bmm_blas": (einsum, py_bmm.bmm_blas),
+        # "einsum_bmm_blas": (einsum, py_bmm.bmm_blas),
         "numpy_einsum": (np.einsum,)
     }
 

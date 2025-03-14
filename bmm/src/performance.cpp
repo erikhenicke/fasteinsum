@@ -85,7 +85,6 @@ bool check_correctness(
             break;
         }
     }
-
     return correct;
 }
 
@@ -117,9 +116,7 @@ double measure_performance(
         flush_cache();
 
         bmm_wrapper(a.data(), b.data(), c.data(), batch_dim, a_rows, b_cols, a_cols, b1, b2, b3, &times[i]);
-
     }
-
     // Calculate average time
     double total_time = 0.0;
     for (int i = 0; i < num_repeats; ++i) {
@@ -131,11 +128,10 @@ double measure_performance(
 }
 
 int main() {
-    // const int num_repeats = 1;
-    const int num_repeats_shuffle = 4;
+    const int num_repeats_shuffle = 1;
 
     bool do_correctness_check = false;
-    bool do_write_csv = true;
+    bool do_write_csv = false;
 
     cout << "Measuring performance..."  << endl;
 
@@ -153,12 +149,12 @@ int main() {
         // {"blas parallel", bmm_blas_parallel_wrapper},
         // {"kernel", bmm_kernel_wrapper},
         // {"kernel parallel", bmm_kernel_parallel_wrapper},
-        // {"packing", bmm_packing_wrapper},
-        // {"packing parallel", bmm_packing_parallel_wrapper}
-        {"packing omp", bmm_packing_omp_wrapper},
-        {"packing omp unrolled", bmm_packing_omp_unrolled_wrapper},
-        {"packing omp parallel", bmm_packing_omp_parallel_wrapper},
-        {"packing omp unrolled parallel", bmm_packing_omp_unrolled_parallel_wrapper}
+        {"packing", bmm_packing_wrapper},
+        //{"packing parallel", bmm_packing_parallel_wrapper}
+        //{"packing omp", bmm_packing_omp_wrapper},
+        //{"packing omp unrolled", bmm_packing_omp_unrolled_wrapper},
+        //{"packing omp parallel", bmm_packing_omp_parallel_wrapper},
+        //{"packing omp unrolled parallel", bmm_packing_omp_unrolled_parallel_wrapper
         };
 
     // NOTE: dont delete - sizes comp: naive
@@ -178,6 +174,23 @@ int main() {
     // {1, 4, 7000, 7000, 7000, 220, 88, 80},
     // {1, 4, 8000, 8000, 8000, 220, 88, 80},
 
+    // NOTE: dont delete - size comp: omp
+    // {8000, 4, 50, 50, 50, 220, 88, 80},
+    // {4000, 4, 100, 100, 100, 220, 88, 80},
+    // {2000, 4, 250, 250, 250, 220, 88, 80},
+    // {1000, 4, 500, 500, 500, 220, 88, 80},
+    // {800, 4, 1000, 1000, 1000, 220, 88, 80},
+    // {400, 4, 1500, 1500, 1500, 220, 88, 80},
+    // {200, 4, 2000, 2000, 2000, 220, 88, 80},
+    // {100, 4, 2500, 2500, 2500, 220, 88, 80},
+    // {60, 4, 3000, 3000, 3000, 220, 88, 80},
+    // {40, 4, 3500, 3500, 3500, 220, 88, 80},
+    // {20 , 4, 4000, 4000, 4000, 220, 88, 80},
+    // {10, 4, 5000, 5000, 5000, 220, 88, 80},
+    // {8, 4, 6000, 6000, 6000, 220, 88, 80},
+    // {4, 4, 7000, 7000, 7000, 220, 88, 80},
+    // {2, 4, 8000, 8000, 8000, 220, 88, 80},
+
     // Contains:
     // 1. Number of repetitions
     // 2. Batch dimension
@@ -188,7 +201,7 @@ int main() {
     // 7. B2
     // 8. B3
     vector<tuple<int, int, int, int, int, int, int, int>> sizes = {
-        {10, 4, 2000, 2000, 2000, 220, 88, 80},
+        {50, 4, 2000, 2000, 2000, 220, 88, 80},
         };
 
     // // Block sizes to test

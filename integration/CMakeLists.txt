@@ -4,7 +4,9 @@ find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 # Set PYTHONPATH to include the build directory
 # set(PYTHONPATH "${CMAKE_BINARY_DIR}/bmm")
 set(PYTHONPATH "${CMAKE_BINARY_DIR}/bmm:$ENV{PYTHONPATH}")
+set(Python3_EXECUTABLE "/home/erik/.venv_bmm/bin/python3.13")
 message("Python exacutable: ${Python3_EXECUTABLE}")
+
 #PYTHONPATH=/home/sonja/.bmm_venv/lib/python3.12/site-packages:/home/sonja/Alg_Eng/ae_ws2024_bmm/build/bmm
 #/home/sonja/.bmm_venv/bin/python
 

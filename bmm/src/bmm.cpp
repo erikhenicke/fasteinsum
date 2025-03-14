@@ -141,7 +141,7 @@ inline void pack_b(
         rows_idx_bound = b_rows;
     }
 
-    // Copy data from matrix B to aligned memory and padd with zeros if necessary.
+    // Copy data from matrix B to aligned memory and pad with zeros if necessary.
     int b_pack_rows = rows_idx_bound - rows_idx;
     int b_pack_cols = cols_idx_bound - cols_idx;
     if (cols_idx_bound > b_cols) {
