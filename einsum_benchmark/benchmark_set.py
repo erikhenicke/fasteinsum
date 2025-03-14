@@ -111,111 +111,6 @@ list_sizes = [
     "a:24;c:16;b:16;e:16;d:24;g:24;f:16;",
     "a:24;c:16;b:16;e:16;d:24;g:24;f:16;",
     "a:24;c:16;b:16;e:16;d:24;g:24;f:16;"
-
-    ### single precision
-    # "a:384;c:24;b:384;d:384;",
-    # "a:384;c:376;b:24;d:384;",
-    # "a:96;c:24;b:84;e:96;d:96;",
-    # "a:96;c:84;b:24;e:84;d:96;",
-    # "a:96;c:24;b:84;e:96;d:84;",
-    # "a:48;c:24;b:36;e:48;d:36;f:36;",
-    # "a:48;c:36;b:36;e:48;d:24;f:48;",
-    # "a:48;c:36;b:24;e:48;d:36;f:36;",
-    # "a:96;c:84;b:84;e:96;d:84;",
-    # "a:96;c:84;b:84;e:96;d:84;",
-    # "a:96;c:84;b:84;e:96;d:84;",
-    # "a:7248;c:7248;b:7240;",
-    # "a:384;c:376;b:376;d:384;",
-    # "a:384;c:384;b:376;d:384;",
-    # "a:384;c:376;b:376;d:384;",
-    # "a:384;c:376;b:384;d:376;",
-    # "a:384;c:376;b:384;d:376;",
-    # "a:384;c:376;b:376;d:384;",
-    # "a:96;c:84;b:84;e:96;d:84;",
-    # "a:96;c:84;b:84;e:84;d:96;f:84;",
-    # "a:96;c:84;b:84;e:84;d:84;f:96;",
-    # "a:96;c:84;b:96;e:84;d:84;f:84;",
-    # "a:96;c:84;b:84;e:84;d:84;f:96;",
-    # "a:96;c:84;b:96;e:84;d:84;f:84;",
-    # "a:96;c:84;b:84;e:84;d:84;f:96;",
-    # "a:96;c:84;b:84;e:84;d:84;f:96;",
-    # "a:96;c:84;b:84;e:84;d:84;f:96;",
-    # "a:96;c:84;b:84;e:96;d:84;f:96;",
-    # "a:96;c:84;b:96;e:96;d:84;f:84;",
-    # "a:96;c:84;b:84;e:96;d:84;f:96;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:24;d:20;g:24;f:20;",
-    # "a:24;c:20;b:20;e:24;d:20;g:24;f:20;",
-    # "a:24;c:20;b:20;e:24;d:20;g:24;f:20;",
-    # "a:24;c:20;b:20;e:24;d:20;g:24;f:20;",
-    # "a:24;c:20;b:20;e:24;d:20;g:24;f:20;",
-    # "a:24;c:20;b:20;e:24;d:20;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;",
-    # "a:24;c:20;b:20;e:20;d:24;g:24;f:20;"
-]
-
-num_repeats = [
-    20,
-    20,
-    20,
-    20,
-    20,
-    1,
-    1,
-    2,
-    20,
-    20,
-
-    20,
-    1,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    20,
-    1,
-
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-    20,
-    20
 ]
 
 # helper functions
@@ -244,36 +139,23 @@ def parse_sizes(size_str):
 
 def get_testcases():
     test_cases = []
-    for expr, size_str, num_repeat in zip(list_format_strings, list_sizes, num_repeats):
+    for expr, size_str in zip(list_format_strings, list_sizes):
         indices = expr.split('-')
         einsum_str = f"{indices[1]},{indices[2]}->{indices[0]}"
         sizes = parse_sizes(size_str)
         shapes = [tuple(sizes[dim] for dim in indices[1]), tuple(sizes[dim] for dim in indices[2])]
-        test_cases.append((einsum_str, *shapes, num_repeat))
+        test_cases.append((einsum_str, *shapes))
     return test_cases
-
-# test_cases = make_testcases()
-# print("No test cases: ", len(test_cases))
-# for test_case in test_cases:
-#     print(test_case)
 
 def get_testcases_with_bd(bd):
     test_cases = []
-    for expr, size_str, num_repeat in zip(list_format_strings, list_sizes, num_repeats):
+    for expr, size_str in zip(list_format_strings, list_sizes):
         indices = expr.split('-')
         einsum_str = f"z{indices[1]},z{indices[2]}->z{indices[0]}"
         sizes = parse_sizes(size_str)
         shapes = [(bd,) + tuple(sizes[dim] for dim in indices[1]), (bd,) + tuple(sizes[dim] for dim in indices[2])]
-        test_cases.append((einsum_str, *shapes, num_repeat))
+        test_cases.append((einsum_str, *shapes))
     return test_cases
-
-# Example usage
-# bd = 10
-# test_cases_bd = make_testcases_add_bd(bd)
-# print("No test cases bd: ", len(test_cases_bd))
-# for test_case in test_cases_bd:
-#     print(test_case)
-
 
 def make_bd_only_testcases(sizes):
     # tupel sizes: (bd, a_rows, a_cols, b_cols)
@@ -285,50 +167,9 @@ def make_bd_only_testcases(sizes):
         test_cases.append((einsum_str, *shapes))
     return test_cases
 
-# sizes = [(10, 100, 100, 100), (10, 200, 200, 200), (10, 100, 200, 300), (10, 300, 200, 100)]
-# test_cases_only_bd = make_only_bd_testcases(sizes)
-# print("No test cases only bd: ", len(test_cases_only_bd))
-# for test_case in test_cases_only_bd:
-#     print(test_case)
-
-
-MAX_TENSOR_SIZE = 100000000  # Adjust this value as needed
-BIG_TENSOR_SIZE = 700000000000000
-
 def generate_einsum_input(test_case):
-    einsum_str, shape1, shape2, num_repeat = test_case
-
-    # size1 = np.prod(shape1)
-    # size2 = np.prod(shape2)
-    # if size1 > MAX_TENSOR_SIZE or size2 > MAX_TENSOR_SIZE:
-    #     print(f"Warning: Skipping tensor generation for test case {test_case} due to large tensor size: {size1}, {size2}, {size1 * size2}")
-
-    # Delete previous tensors if they exist
-    try:
-        del tensor1
-        del tensor2
-    except NameError:
-        pass
+    einsum_str, shape1, shape2 = test_case
 
     tensor1 = np.random.rand(*shape1)
     tensor2 = np.random.rand(*shape2)
-    return einsum_str, tensor1, tensor2, num_repeat
-
-# # Calculate einsum result for a test case
-# test_case = test_cases[0]
-# einsum_input = generate_einsum_input(test_case)
-# result = np.einsum(*einsum_input)
-#
-# # Calculate einsum result for a test case with bd
-# test_case_bd = test_cases_bd[0]
-# einsum_input_bd = generate_einsum_input(test_case_bd)
-# result_bd = np.einsum(*einsum_input_bd)
-# #
-# # Calculate einsum result for a test case with only bd
-# test_case_only_bd = test_cases_only_bd[0]
-# einsum_input_only_bd = generate_einsum_input(test_case_only_bd)
-# result_only_bd = np.einsum(*einsum_input_only_bd)
-#
-# print("Result: ", result)
-# print("Result bd: ", result_bd)
-# print("Result only bd: ", result_only_bd)
+    return einsum_str, tensor1, tensor2

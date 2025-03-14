@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(einsum-bmm)
 
-#set(CMAKE_CXX_STANDARD 11) #??
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -std=c++11 -march=native -fopenmp") # TODO: find portable solution
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -march=native -fopenmp")
 
 add_subdirectory(bmm)
-add_subdirectory(mm)
-add_subdirectory(integration)
 add_subdirectory(catch)
 add_subdirectory(tests)
 
