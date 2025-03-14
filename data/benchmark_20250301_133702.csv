@@ -1,6 +1,0 @@
-function,einsum_str,shape1,shape2,time
-einsum_bmm_naive,abc-dca-bd,384-376-384,24-384,0.7659137010574341
-einsum_bmm_kernel,abc-dca-bd,384-376-384,24-384,1.417382788658142
-einsum_bmm_parallel,abc-dca-bd,384-376-384,24-384,0.9921972751617432
-einsum_bmm_blas,abc-dca-bd,384-376-384,24-384,1.5782695293426514
-numpy_einsum,abc-dca-bd,384-376-384,24-384,0.6776434183120728

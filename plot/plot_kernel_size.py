@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Read the CSV file, skipping the first row
-df = pd.read_csv('kernel_size.csv', header=0,
+df = pd.read_csv('results/kernel_size.csv', header=0,
                  names=['Kernel', 'Time', 'BD', 'ARows', 'ACols', 'BCols', 'B1', 'B2', 'B3', 'Correctness'])
 
 # Strip any leading or trailing spaces from column names

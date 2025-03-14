@@ -5,7 +5,7 @@ import os
 
 def plot_einsum_benchmarks_by_shape():
     # Read the CSV file
-    df = pd.read_csv('updated_einsum_benchmark_comparison.csv', header=0,
+    df = pd.read_csv('results/einsum_benchmark_comparison_shapes.csv', header=0,
                      names=['function', 'einsum_string', 'shape1', 'shape2', 'time', 'shapeA', 'shapeB'])
 
     # Strip any leading or trailing spaces from column names

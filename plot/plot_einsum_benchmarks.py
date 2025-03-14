@@ -6,7 +6,7 @@ import os
 # barplot
 def plot_einsum_benchmarks(exclude=True, func_3=True):
     # Read the CSV file
-    df = pd.read_csv('benchmark_einsum_comparison.csv', header=0,
+    df = pd.read_csv('results/benchmark_einsum_comparison.csv', header=0,
                      names=['function', 'einsum_string', 'shape1', 'shape2', 'time'])
 
     # Strip any leading or trailing spaces from column names
@@ -79,7 +79,7 @@ def plot_einsum_benchmarks(exclude=True, func_3=True):
 
 def plot_einsum_benchmarks_scatter(exclude=True, func_3=True):
     # Read the CSV file
-    df = pd.read_csv('benchmark_einsum_comparison.csv', header=0,
+    df = pd.read_csv('results/benchmark_einsum_comparison.csv', header=0,
                      names=['function', 'einsum_string', 'shape1', 'shape2', 'time'])
 
     # Strip any leading or trailing spaces from column names
@@ -156,7 +156,7 @@ def plot_einsum_benchmarks_scatter(exclude=True, func_3=True):
 
 def plot_einsum_benchmarks_custom(exclude=True):
     # Read the CSV file
-    df = pd.read_csv('benchmark_einsum_comparison.csv', header=0,
+    df = pd.read_csv('results/benchmark_einsum_comparison.csv', header=0,
                      names=['function', 'einsum_string', 'shape1', 'shape2', 'time'])
 
     # Strip any leading or trailing spaces from column names
@@ -236,7 +236,7 @@ import os
 
 def plot_einsum_benchmarks_by_shape():
     # Read the CSV file
-    df = pd.read_csv('updated_einsum_benchmark_comparison.csv', header=0,
+    df = pd.read_csv('results/einsum_benchmark_comparison_shapes.csv', header=0,
                      names=['function', 'einsum_string', 'shape1', 'shape2', 'time', 'shapeA', 'shapeB'])
 
     # Strip any leading or trailing spaces from column names
@@ -299,7 +299,7 @@ plot_einsum_benchmarks_by_shape()
 # plot over shapes
 def plot_einsum_benchmarks_by_shapes(func_3=True):
     # Read the CSV file
-    df = pd.read_csv('updated_einsum_benchmark_comparison.csv', header=0,
+    df = pd.read_csv('results/einsum_benchmark_comparison_shapes.csv', header=0,
                      names=['function', 'einsum_string', 'shape1', 'shape2', 'time', 'shapeA', 'shapeB'])
 
     # Strip any leading or trailing spaces from column names

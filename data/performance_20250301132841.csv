@@ -1,4 +1,0 @@
-Name, Batch Dimension, ARows, ACols, BCols, B1, B2, B3, Correctness, Time
-kernel8x16,4,1024,1024,1024,256,128,64,1,0.602268
-kernel4x12,4,1024,1024,1024,256,128,64,1,0.371805
-naive,4,1024,1024,1024,256,128,64,1,2.19894

@@ -5,13 +5,13 @@ import os
 
 def plot_parallel_functions():
     # Read the CSV files
-    df_naive = pd.read_csv('performance_bmm_naive_comparison.csv', header=0,
+    df_naive = pd.read_csv('results/performance_bmm_naive_comparison.csv', header=0,
                            names=['function', 'BD', 'ARows', 'ACols', 'BCols', 'B1', 'B2', 'B3', 'Correctness', 'time'])
     df_naive.columns = df_naive.columns.str.strip()
-    df_comparison = pd.read_csv('performance_bmm_comparison.csv', header=0,
+    df_comparison = pd.read_csv('results/performance_bmm_comparison.csv', header=0,
                                 names=['function', 'BD', 'ARows', 'ACols', 'BCols', 'B1', 'B2', 'B3', 'Correctness', 'time'])
     df_comparison.columns = df_comparison.columns.str.strip()
-    df_omp = pd.read_csv('performance_bmm_omp_comparison.csv', header=0,
+    df_omp = pd.read_csv('results/performance_bmm_omp_comparison.csv', header=0,
                          names=['function', 'BD', 'ARows', 'ACols', 'BCols', 'B1', 'B2', 'B3', 'Correctness', 'time'])
     df_omp.columns = df_omp.columns.str.strip()
 
