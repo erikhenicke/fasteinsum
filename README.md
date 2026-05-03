@@ -1,4 +1,4 @@
-# Fast Einsum with batch matrix multiplication
+# Fast Einsum with Batch Matrix Multiplication
 This repository contains an einsum python library that uses batch matrix multiplication created by,
 - Sonja Weitzing and
 - Erik Henicke
