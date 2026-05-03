@@ -2,6 +2,8 @@
 This repository contains an einsum python library that uses batch matrix multiplication created by
 - Sonja Weitzing and
 - Erik Henicke
+
+
 in the context of the course Algorithm Engineering by Mark Blacher at Friedrich Schiller University Jena.
 
 ## Motivation
